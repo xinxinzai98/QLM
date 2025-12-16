@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mms-app:
+    image: mms-app:latest
+    container_name: mms-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=7d
+      - DB_PATH=/app/backend/database/mms.db
+    volumes:
+      # Data Persistence
+      - ./data/database:/app/backend/database
+      - ./data/uploads:/app/backend/uploads
+      # Logs (Optional, if app writes to file)
+      #- ./logs:/app/backend/logs
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3

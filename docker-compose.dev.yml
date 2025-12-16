@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  # In dev, we usually run npm run dev locally, but if one wants to run backend in docker:
+  mms-backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder
+    command: npm run dev
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=dev-secret-key

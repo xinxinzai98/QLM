@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mms-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mms-material-management
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # ⚠️ 安全警告：以下环境变量必须在部署时设置
+      # 请使用 docker-compose.override.yml 或环境变量文件设置
+      - JWT_SECRET=${JWT_SECRET:-CHANGE_ME_IN_PRODUCTION}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - DB_PATH=./database/mms.db
+    volumes:
+      # 数据持久化：数据库文件
+      - ./data/database:/app/backend/database
+      # 数据持久化：用户上传文件
+      - ./data/uploads:/app/backend/uploads
+      # 日志目录（可选）
+      - ./data/logs:/app/backend/logs
+    restart: unless-stopped
+    networks:
+      - mms-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+networks:
+  mms-network:
+    driver: bridge
+
+# ⚠️ 重要提示：
+# 1. 生产环境部署前，必须创建 docker-compose.override.yml 文件设置敏感环境变量
+# 2. 或者使用环境变量文件：docker-compose --env-file .env.production up -d
+# 3. 确保 JWT_SECRET 是强随机字符串（至少32个字符）
+# 4. 定期备份 ./data 目录
+
+
+

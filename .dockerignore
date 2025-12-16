@@ -1,0 +1,88 @@
+# Git相关
+.git
+.gitignore
+.gitattributes
+
+# 依赖
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 构建输出（将在Docker中构建）
+frontend/dist
+backend/dist
+build
+
+# 环境变量（将在运行时通过环境变量或docker-compose设置）
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# 数据库文件（将在容器中创建）
+*.db
+*.sqlite
+*.sqlite3
+backend/database/*.db
+data/
+
+# 用户上传文件（将通过volume挂载）
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE配置
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.settings
+.project
+.classpath
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+logs/
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+.cache
+.parcel-cache
+
+# 测试
+coverage
+.nyc_output
+*.test.js
+*.spec.js
+
+# 文档（可选，根据需要决定是否包含）
+docs/
+README.md
+*.md
+
+# 启动脚本（不需要在容器中）
+start.bat
+start.ps1
+start.sh
+install-dependencies.bat
+fix-vulnerabilities.bat
+fix-vulnerabilities.sh
+
+# 其他
+.eslintcache
+.stylelintcache
+*.pid
+*.seed
+
+
+

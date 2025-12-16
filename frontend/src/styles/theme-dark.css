@@ -1,0 +1,139 @@
+/**
+ * 深色主题样式
+ * 基于设计令牌系统，覆盖浅色主题变量
+ */
+
+[data-theme="dark"] {
+  /* ============================================
+     色彩系统覆盖
+     ============================================ */
+
+  /* 背景色 */
+  --color-bg-page: #0f172a;
+  --color-bg-card: #1e293b;
+  --color-bg-hover: #334155;
+
+  /* 文本颜色 */
+  --color-neutral-50: #1e293b;
+  --color-neutral-100: #334155;
+  --color-neutral-200: #475569;
+  --color-neutral-300: #64748b;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #cbd5e1;
+  --color-neutral-600: #e2e8f0;
+  --color-neutral-700: #f1f5f9;
+  --color-neutral-800: #f8fafc;
+  --color-neutral-900: #ffffff;
+
+  /* 毛玻璃效果 */
+  --glass-bg: rgba(30, 41, 59, 0.8);
+  --glass-bg-dark: rgba(15, 23, 42, 0.9);
+
+  /* 背景渐变 */
+  --gradient-bg-light: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --gradient-bg-card: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --gradient-sidebar: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+
+  /* 边框颜色 */
+  --color-border: rgba(255, 255, 255, 0.1);
+}
+
+/* 深色主题下的Element Plus组件样式覆盖 */
+[data-theme="dark"] .el-card {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-card__header {
+  border-bottom-color: var(--color-border);
+  color: var(--color-neutral-800);
+}
+
+[data-theme="dark"] .el-table {
+  background-color: var(--color-bg-card);
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-table th {
+  background-color: var(--color-bg-hover);
+  color: var(--color-neutral-800);
+}
+
+[data-theme="dark"] .el-table td {
+  border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .el-input__wrapper {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .el-input__inner {
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-select-dropdown {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .el-select-dropdown__item {
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-select-dropdown__item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .el-dropdown-menu {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .el-dropdown-menu__item {
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-dropdown-menu__item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .el-dialog {
+  background-color: var(--color-bg-card);
+  color: var(--color-neutral-700);
+}
+
+[data-theme="dark"] .el-dialog__header {
+  border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .el-dialog__title {
+  color: var(--color-neutral-800);
+}
+
+[data-theme="dark"] .el-menu {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .el-menu-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .el-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .el-menu-item.is-active {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+
+
+
+

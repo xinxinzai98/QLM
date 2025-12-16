@@ -1,0 +1,35 @@
+# ============================================
+# Docker Compose 覆盖文件示例
+# ============================================
+# 
+# ⚠️ 安全警告：
+# 1. 此文件包含敏感信息（JWT_SECRET）
+# 2. 不要将此文件提交到Git仓库
+# 3. 复制此文件为 docker-compose.override.yml 并修改配置
+# 4. 设置文件权限为 600：chmod 600 docker-compose.override.yml
+#
+# 使用方法：
+# 1. cp docker-compose.override.yml.example docker-compose.override.yml
+# 2. 修改 docker-compose.override.yml 中的配置
+# 3. docker-compose 会自动读取此文件
+#
+# ============================================
+
+version: '3.8'
+
+services:
+  mms-app:
+    environment:
+      # ⚠️ 必须修改：设置为强随机字符串（至少32个字符）
+      # 生成命令：openssl rand -hex 32
+      - JWT_SECRET=CHANGE_ME_TO_STRONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+      
+      # JWT过期时间（可选，默认7d）
+      - JWT_EXPIRES_IN=7d
+      
+      # 其他环境变量（根据需要添加）
+      # - JWT_REFRESH_SECRET=your-refresh-secret
+      # - DB_PATH=./database/mms.db
+
+
+
