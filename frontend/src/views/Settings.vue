@@ -158,6 +158,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { ElMessage } from 'element-plus';
 import { User, Setting, Bell, DataBoard, Tools } from '@element-plus/icons-vue';
+import Breadcrumb from '@/components/Breadcrumb.vue';
 
 const router = useRouter();
 const userStore = useUserStore();

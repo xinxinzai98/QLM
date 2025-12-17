@@ -33,7 +33,7 @@ router.post('/register', async (req, res, next) => {
 
     // 检查用户名是否已存在
     const existingUser = await dbGet('SELECT id FROM users WHERE username = ?', [username]);
-    
+
     if (existingUser && existingUser.id) {
       return res.status(400).json({
         success: false,
@@ -100,11 +100,11 @@ router.post('/login', authValidators.login, (req, res, next) => {
           const secret = process.env.JWT_SECRET;
           const defaultSecret = 'your-super-secret-jwt-key-change-in-production';
           const isProduction = process.env.NODE_ENV === 'production';
-          
+
           if (isProduction && (!secret || secret === defaultSecret)) {
             throw new Error('JWT_SECRET must be set in production environment');
           }
-          
+
           return secret || defaultSecret;
         };
 
@@ -117,7 +117,7 @@ router.post('/login', authValidators.login, (req, res, next) => {
             type: 'access'
           },
           getJWTSecret(),
-          { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } // 默认1小时
+          { expiresIn: process.env.JWT_EXPIRES_IN || '24h' } // 默认24小时
         );
 
         // 生成Refresh Token（长期有效）
@@ -134,7 +134,7 @@ router.post('/login', authValidators.login, (req, res, next) => {
         // 保存Refresh Token到数据库
         const refreshTokenExpiresAt = new Date();
         refreshTokenExpiresAt.setDate(refreshTokenExpiresAt.getDate() + 30); // 30天后过期
-        
+
         db.run(
           `UPDATE users SET refresh_token = ?, refresh_token_expires_at = ? WHERE id = ?`,
           [refreshToken, refreshTokenExpiresAt.toISOString(), user.id],
@@ -198,9 +198,9 @@ router.post('/refresh', async (req, res, next) => {
     }
 
     // 验证Refresh Token
-    const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 
+    const refreshTokenSecret = process.env.JWT_REFRESH_SECRET ||
       (process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production') + '_refresh';
-    
+
     jwt.verify(refreshToken, refreshTokenSecret, async (err, decoded) => {
       if (err) {
         return res.status(401).json({
@@ -253,11 +253,11 @@ router.post('/refresh', async (req, res, next) => {
             const secret = process.env.JWT_SECRET;
             const defaultSecret = 'your-super-secret-jwt-key-change-in-production';
             const isProduction = process.env.NODE_ENV === 'production';
-            
+
             if (isProduction && (!secret || secret === defaultSecret)) {
               throw new Error('JWT_SECRET must be set in production environment');
             }
-            
+
             return secret || defaultSecret;
           };
 
@@ -269,7 +269,7 @@ router.post('/refresh', async (req, res, next) => {
               type: 'access'
             },
             getJWTSecret(),
-            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
           );
 
           res.json({

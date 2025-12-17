@@ -3,9 +3,17 @@
     <!-- 面包屑导航 -->
     <Breadcrumb />
 
-    <!-- 自定义工作台按钮 -->
-    <div class="dashboard-header">
-      <DashboardCustomizer ref="customizerRef" />
+    <!-- 页面标题区域 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-left">
+          <h1 class="page-title">仪表盘</h1>
+          <p class="page-description">查看系统概览和关键运营指标</p>
+        </div>
+        <div class="page-header-right">
+          <DashboardCustomizer ref="customizerRef" />
+        </div>
+      </div>
     </div>
 
     <!-- 骨架屏加载 -->
@@ -29,14 +37,21 @@
 
     <!-- 实际内容 -->
     <el-row :gutter="20" class="stats-row" v-if="!initialLoading && moduleVisibility.stats">
-      <el-col :xs="24" :sm="12" :md="6" v-for="stat in stats" :key="stat.label">
+      <el-col :xs="24" :sm="12" :md="6" v-for="(stat, index) in statsConfig" :key="stat.label">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon" :style="{ backgroundColor: stat.color }">
               <el-icon :size="30"><component :is="stat.icon" /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ formatNumber(stat.value) }}</div>
+              <div class="stat-value">
+                {{ 
+                  index === 0 ? formatNumber(statsValues.totalMaterials) :
+                  index === 1 ? formatNumber(statsValues.pendingTransactions) :
+                  index === 2 ? formatNumber(statsValues.todayTransactions) :
+                  formatNumber(statsValues.lowStockMaterials)
+                }}
+              </div>
               <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
@@ -135,7 +150,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted, markRaw } from 'vue';
 import * as echarts from 'echarts';
 import api from '@/utils/api';
 import { ElMessage } from 'element-plus';
@@ -144,6 +159,15 @@ import { handleApiError } from '@/utils/errorHandler';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import DashboardCustomizer from '@/components/DashboardCustomizer.vue';
 
+// 颜色常量 - 对应 tokens.css
+const COLORS = {
+  primary: '#22c55e',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  bgCard: '#ffffff'
+};
+
 const iconMap = {
   Box,
   Document,
@@ -151,12 +175,21 @@ const iconMap = {
   Clock
 };
 
-const stats = ref([
-  { label: '物料总数', value: 0, icon: Box, color: 'var(--color-primary-500)' },
-  { label: '待审批单', value: 0, icon: Clock, color: 'var(--color-warning-500)' },
-  { label: '今日出入库', value: 0, icon: Document, color: 'var(--color-success-500)' },
-  { label: '低库存物料', value: 0, icon: Warning, color: 'var(--color-error-500)' }
-]);
+// 静态配置 - 不放入响应式对象中，避免Vue组件代理警告
+const statsConfig = [
+  { label: '物料总数', icon: Box, color: COLORS.primary },
+  { label: '待审批单', icon: Clock, color: COLORS.warning },
+  { label: '今日出入库', icon: Document, color: COLORS.success },
+  { label: '低库存物料', icon: Warning, color: COLORS.error }
+];
+
+// 响应式数据
+const statsValues = ref({
+  totalMaterials: 0,
+  pendingTransactions: 0,
+  todayTransactions: 0,
+  lowStockMaterials: 0
+});
 
 const categoryChartRef = ref(null);
 const trendChartRef = ref(null);
@@ -217,10 +250,10 @@ const fetchStats = async () => {
     const response = await api.get('/dashboard/stats');
     if (response.data.success) {
       const data = response.data.data;
-      stats.value[0].value = data.totalMaterials || 0;
-      stats.value[1].value = data.pendingTransactions || 0;
-      stats.value[2].value = data.todayTransactions || 0;
-      stats.value[3].value = data.lowStockMaterials || 0;
+      statsValues.value.totalMaterials = data.totalMaterials || 0;
+      statsValues.value.pendingTransactions = data.pendingTransactions || 0;
+      statsValues.value.todayTransactions = data.todayTransactions || 0;
+      statsValues.value.lowStockMaterials = data.lowStockMaterials || 0;
     }
   } catch (error) {
     handleApiError(error, '获取统计数据失败');
@@ -256,7 +289,7 @@ const fetchCategoryStats = async () => {
             avoidLabelOverlap: false,
             itemStyle: {
               borderRadius: 10,
-              borderColor: 'var(--color-bg-card)',
+              borderColor: COLORS.bgCard,
               borderWidth: 2
             },
             label: {
@@ -352,13 +385,13 @@ const fetchTrend = async () => {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'var(--color-success-500)' },
+                  { offset: 0, color: COLORS.success },
                   { offset: 1, color: 'rgba(34, 197, 94, 0.1)' }
                 ]
               }
             },
             itemStyle: {
-              color: 'var(--color-success-500)',
+              color: COLORS.success,
               borderWidth: 2,
               borderColor: '#fff'
             },
@@ -391,13 +424,52 @@ const fetchTrend = async () => {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'var(--color-warning-500)' },
+                  { offset: 0, color: COLORS.warning },
                   { offset: 1, color: 'rgba(245, 158, 11, 0.1)' }
                 ]
               }
             },
             itemStyle: {
-              color: 'var(--color-warning-500)',
+              color: COLORS.warning,
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
+            lineStyle: {
+              width: 3,
+              shadowBlur: 4,
+              shadowColor: 'rgba(34, 197, 94, 0.3)'
+            },
+            symbol: 'circle',
+            symbolSize: 6,
+            emphasis: {
+              focus: 'series',
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(34, 197, 94, 0.5)'
+              }
+            }
+          },
+          {
+            name: '出库',
+            type: 'line',
+            data: outData,
+            smooth: true,
+            areaStyle: {
+              opacity: 0.4,
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: COLORS.warning },
+                  { offset: 1, color: 'rgba(245, 158, 11, 0.1)' }
+                ]
+              }
+            },
+            itemStyle: {
+              color: COLORS.warning,
               borderWidth: 2,
               borderColor: '#fff'
             },
@@ -691,6 +763,73 @@ onUnmounted(() => {
 
   .page-header-right .el-button {
     width: 100%;
+  }
+}
+/* 页面标题区域 - 统一页面风格 */
+.page-header {
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 2px solid var(--color-neutral-200);
+}
+
+.page-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-6);
+  flex-wrap: wrap;
+}
+
+.page-header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--spacing-2);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-description {
+  font-size: var(--font-size-base);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* 响应式优化 */
+@media (max-width: 1024px) {
+  .page-header {
+    margin-bottom: var(--spacing-6);
+    padding-bottom: var(--spacing-4);
+  }
+
+  .page-title {
+    font-size: var(--font-size-h3);
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header-right {
+    width: 100%;
+    margin-top: var(--spacing-3);
+    justify-content: flex-end;
   }
 }
 </style>

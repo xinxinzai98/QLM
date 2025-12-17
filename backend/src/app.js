@@ -37,7 +37,7 @@ app.use(compression({
 // 请求限流（防止恶意请求和DDoS）
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15分钟
-    max: 100, // 限制每个IP在15分钟内最多100次请求
+    max: 100000, // 限制每个IP在15分钟内最多100000次请求 (极大放宽限制)
     message: {
         success: false,
         message: '请求过于频繁，请稍后再试'
@@ -52,7 +52,7 @@ app.use('/api/', limiter);
 // 登录接口使用更宽松的限流（防止暴力破解）
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15分钟
-    max: 20, // 15分钟内最多20次登录尝试
+    max: 10000, // 15分钟内最多10000次登录尝试
     message: {
         success: false,
         message: '登录尝试次数过多，请15分钟后再试'

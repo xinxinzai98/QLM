@@ -146,6 +146,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue';
 import api from '@/utils/api';
 import { Search } from '@element-plus/icons-vue';
 import { handleApiError } from '@/utils/errorHandler';
+import Breadcrumb from '@/components/Breadcrumb.vue';
 
 const loading = ref(false);
 const logList = ref([]);

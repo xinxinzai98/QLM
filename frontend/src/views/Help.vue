@@ -186,6 +186,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Lightning, Box, Document, DataBoard, QuestionFilled } from '@element-plus/icons-vue';
+import Breadcrumb from '@/components/Breadcrumb.vue';
 
 const activeSection = ref('quick-start');
 const activeFaq = ref([]);

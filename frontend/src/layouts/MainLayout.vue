@@ -113,7 +113,7 @@
               @click="handleQuickAction('material')"
               title="快速创建物料"
             >
-              <el-icon><Plus /></el-icon>
+              <el-icon><CirclePlus /></el-icon>
               <span class="quick-action-text">物料</span>
             </el-button>
             <el-button
@@ -185,7 +185,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { ElMessageBox } from 'element-plus';
-import { Fold, Expand, Plus, DocumentAdd, QuestionFilled, Setting } from '@element-plus/icons-vue';
+import { Fold, Expand, CirclePlus, DocumentAdd, QuestionFilled, Setting } from '@element-plus/icons-vue';
 import NotificationCenter from '@/components/NotificationCenter.vue';
 import GlobalSearch from '@/components/GlobalSearch.vue';
 

@@ -9,7 +9,7 @@
     <template #reference>
       <div class="notification-trigger" @click="loadNotifications">
         <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-          <el-icon :size="20" class="notification-icon">
+          <el-icon :size="16" class="notification-icon">
             <Bell />
           </el-icon>
         </el-badge>
@@ -461,6 +461,21 @@ onMounted(() => {
   margin: 0;
   padding: 0 var(--spacing-4);
   border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.notification-popover.el-popover {
+  background-color: #ffffff !important;
+  color: var(--color-neutral-800) !important;
+  border: 1px solid var(--color-neutral-200);
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-popover .el-tabs__item {
+  color: var(--color-neutral-600);
+}
+
+.notification-popover .el-tabs__item.is-active {
+  color: var(--color-primary-600);
 }
 
 .notification-popover .el-tabs__content {

@@ -24,55 +24,53 @@ import {
   DocumentChecked,
   Setting,
   QuestionFilled,
-  List
+  List,
+  House
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
 
-// 路由标题映射
-const routeTitleMap = {
-  '/dashboard': { title: '仪表盘', icon: DataBoard },
-  '/materials': { title: '物料管理', icon: Box },
-  '/inventory': { title: '出入库管理', icon: Document },
-  '/users': { title: '用户管理', icon: User },
-  '/stocktaking': { title: '物料盘点', icon: DocumentChecked },
-  '/profile': { title: '个人中心', icon: User },
-  '/settings': { title: '系统设置', icon: Setting },
-  '/help': { title: '帮助中心', icon: QuestionFilled },
-  '/operation-logs': { title: '操作日志', icon: List }
+// 路由图标映射（基于路由名称）
+const iconMap = {
+  'Dashboard': DataBoard,
+  'Materials': Box,
+  'Inventory': Document,
+  'Users': User,
+  'Stocktaking': DocumentChecked,
+  'Profile': User,
+  'Settings': Setting,
+  'Help': QuestionFilled,
+  'OperationLogs': List
 };
 
 const breadcrumbList = computed(() => {
   const list = [
-    { path: '/', title: '首页', icon: null }
+    { path: '/', title: '首页', icon: House }
   ];
 
-  // 根据当前路由生成面包屑
-  const path = route.path;
-  const matched = route.matched;
+  /* 
+   遍历路由匹配记录 (matched)
+   这能确保涵盖从父路由到当前子路由的完整路径
+   并且使用路由定义中的 meta.title，避免硬编码
+  */
+  route.matched.forEach((match) => {
+    // 跳过根路由（因为我们已经手动添加了“首页”）
+    if (match.path === '/') return;
 
-  matched.forEach((match, index) => {
-    if (match.path !== '/' && match.path !== path) {
-      const routeInfo = routeTitleMap[match.path];
-      if (routeInfo) {
-        list.push({
-          path: match.path,
-          title: routeInfo.title,
-          icon: routeInfo.icon
-        });
+    // 只有定义了 meta.title 的路由才显示在面包屑中
+    if (match.meta && match.meta.title) {
+      // 避免重复添加（以防万一）
+      if (list.length > 0 && list[list.length - 1].path === match.path) {
+        return;
       }
+
+      list.push({
+        path: match.path,
+        title: match.meta.title,
+        icon: iconMap[match.name] || null
+      });
     }
   });
-
-  // 添加当前页面
-  const currentRouteInfo = routeTitleMap[path];
-  if (currentRouteInfo && list[list.length - 1]?.path !== path) {
-    list.push({
-      path: path,
-      title: currentRouteInfo.title,
-      icon: currentRouteInfo.icon
-    });
-  }
 
   return list;
 });

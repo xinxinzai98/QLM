@@ -1,5 +1,8 @@
 <template>
   <div class="inventory">
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
+
     <!-- 页面标题区域 -->
     <div class="page-header">
       <div class="page-header-content">
@@ -648,6 +651,7 @@ onMounted(() => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
 
 .page-description {
   font-size: var(--font-size-base);
