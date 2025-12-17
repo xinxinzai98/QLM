@@ -7,6 +7,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # 安装前端依赖
+RUN npm config set registry https://registry.npmmirror.com
 RUN npm ci --only=production=false
 
 # 复制前端源代码
@@ -24,13 +25,15 @@ WORKDIR /app/backend
 COPY backend/package*.json ./
 
 # 安装后端依赖（包括生产依赖）
+RUN npm config set registry https://registry.npmmirror.com
 RUN npm ci --only=production
 
 # 多阶段构建 - 生产运行阶段
 FROM node:18-alpine AS production
 
 # 安装必要的系统工具（用于数据库操作等）
-RUN apk add --no-cache \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && apk add --no-cache \
     sqlite \
     && rm -rf /var/cache/apk/*
 
