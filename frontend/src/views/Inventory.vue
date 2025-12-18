@@ -221,6 +221,7 @@
               v-for="material in materialOptions"
               :key="material.id"
               :value="material.id"
+              :label="`${material.material_name} (${material.material_code})`"
             >
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
