@@ -274,7 +274,7 @@ EOF
         
         # 停止现有容器
         if [ -f docker-compose.prod.yml ]; then
-            docker-compose -p $COMPOSE_PROJECT_NAME down || true
+            docker-compose -f docker-compose.prod.yml -p $COMPOSE_PROJECT_NAME down || true
         fi
         
         # 解压新版本
