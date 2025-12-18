@@ -192,14 +192,14 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="600px"
+      :width="dialogWidth"
       @close="handleDialogClose"
     >
       <el-form
         ref="formRef"
         :model="form"
         :rules="formRules"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="物料编码" prop="materialCode" v-if="!isEdit">
           <el-input v-model="form.materialCode" placeholder="请输入物料编码" />
@@ -246,9 +246,9 @@
     <el-dialog
       v-model="viewDialogVisible"
       title="物料详情"
-      width="600px"
+      :width="dialogWidth"
     >
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="descriptionColumns" border>
         <el-descriptions-item label="物料编码">{{ currentMaterial.material_code }}</el-descriptions-item>
         <el-descriptions-item label="物料名称">{{ currentMaterial.material_name }}</el-descriptions-item>
         <el-descriptions-item label="类别">
@@ -280,6 +280,9 @@ import { Plus, Search, Delete, Download, Warning } from '@element-plus/icons-vue
 import { debounce } from '@/utils/debounce';
 import { handleApiError, handleSuccess } from '@/utils/errorHandler';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import { useResponsive } from '@/composables/useResponsive';
+
+const { dialogWidth, formLabelWidth, descriptionColumns, isMobile } = useResponsive();
 
 const userStore = useUserStore();
 
@@ -762,6 +765,15 @@ onMounted(() => {
 
   .page-header-right .el-button {
     width: 100%;
+  }
+
+  /* 表格在移动端优化 */
+  .materials-table {
+    font-size: var(--font-size-sm);
+  }
+
+  .materials-table :deep(.el-table__header) {
+    font-size: var(--font-size-xs);
   }
 }
 </style>

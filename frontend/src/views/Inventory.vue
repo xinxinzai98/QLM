@@ -85,13 +85,28 @@
           </template>
         </el-table-column>
         <el-table-column prop="quantity" label="数量" width="100" />
-        <el-table-column prop="unit" label="单位" width="80" />
-        <el-table-column prop="unit_price" label="单价" width="100">
+        <el-table-column 
+          v-if="!isMobile"
+          prop="unit" 
+          label="单位" 
+          width="80" 
+        />
+        <el-table-column 
+          v-if="!isMobile"
+          prop="unit_price" 
+          label="单价" 
+          width="100"
+        >
           <template #default="{ row }">
             {{ row.unit_price ? `¥${row.unit_price}` : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="total_amount" label="总金额" width="100">
+        <el-table-column 
+          v-if="!isMobile"
+          prop="total_amount" 
+          label="总金额" 
+          width="100"
+        >
           <template #default="{ row }">
             {{ row.total_amount ? `¥${row.total_amount}` : '-' }}
           </template>
@@ -179,14 +194,14 @@
     <el-dialog
       v-model="dialogVisible"
       title="创建出入库单"
-      width="600px"
+      :width="dialogWidth"
       @close="handleDialogClose"
     >
       <el-form
         ref="formRef"
         :model="form"
         :rules="formRules"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="类型" prop="transactionType">
           <el-radio-group v-model="form.transactionType">
@@ -265,9 +280,9 @@
     <el-dialog
       v-model="viewDialogVisible"
       title="出入库单详情"
-      width="600px"
+      :width="dialogWidth"
     >
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="descriptionColumns" border>
         <el-descriptions-item label="单号">{{ currentTransaction.transaction_code }}</el-descriptions-item>
         <el-descriptions-item label="类型">
           <el-tag :type="currentTransaction.transaction_type === 'in' ? 'success' : 'warning'">
@@ -321,12 +336,12 @@
     <el-dialog
       v-model="approveDialogVisible"
       title="审批出入库单"
-      width="500px"
+      :width="dialogWidth"
     >
       <el-form
         ref="approveFormRef"
         :model="approveForm"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="操作">
           <el-radio-group v-model="approveForm.action">
@@ -362,7 +377,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import { handleApiError, handleSuccess } from '@/utils/errorHandler';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import { useResponsive } from '@/composables/useResponsive';
 
+const { dialogWidth, formLabelWidth, descriptionColumns, isMobile } = useResponsive();
 const userStore = useUserStore();
 
 const loading = ref(false);
