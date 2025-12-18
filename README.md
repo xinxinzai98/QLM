@@ -162,10 +162,14 @@ npm run dev
 │   ├── deployment/    # 部署文档
 │   ├── user-guide/    # 用户手册
 │   ├── development/   # 开发文档
-│   └── reports/       # 审查报告
-├── start.bat          # Windows一键启动脚本
-├── start.ps1          # Windows PowerShell启动脚本
-├── start.sh           # Mac/Linux一键启动脚本
+│   └── _archive/      # 历史文档归档
+├── scripts/           # 脚本目录
+│   ├── windows/       # Windows脚本
+│   └── *.sh           # Linux/Mac脚本
+├── ops/               # 运维配置
+│   └── nginx/         # Nginx配置
+├── Dockerfile         # Docker构建文件
+├── docker-compose*.yml # Docker Compose配置
 └── README.md          # 本文件
 ```
 
@@ -242,13 +246,11 @@ npm install
 - [快速部署指南](DEPLOYMENT_QUICK_START.md) - 5分钟快速部署（适合有经验的用户）
 - [部署指南](docs/deployment/DEPLOYMENT.md) - 详细的部署和配置说明
 
-### 项目报告
-- [阶段0：环境与规范同步报告](docs/reports/阶段0_环境与规范同步报告.md)
-- [阶段1：代码审查与逻辑重构摘要报告](docs/reports/阶段1_代码审查与逻辑重构摘要报告.md)
-- [阶段2：前端风格统一摘要报告](docs/reports/阶段2_前端风格统一摘要报告.md)
-- [阶段3：功能完整性验证与错误修复报告](docs/reports/阶段3_功能完整性验证与错误修复报告.md)
-- [阶段4：文档工程化构建报告](docs/reports/阶段4_文档工程化构建报告.md)
-- [系统优化与演进路线图](docs/reports/系统优化与演进路线图.md)
+### 更多文档
+- [文档索引](docs/INDEX.md) - 完整文档导航
+- [维护指南](docs/MAINTENANCE.md) - 系统维护和运维指南
+
+> **历史报告**：项目历史报告和审查报告已归档到 `docs/_archive/reports/` 目录，可通过文档索引访问。
 
 ## 许可证
 

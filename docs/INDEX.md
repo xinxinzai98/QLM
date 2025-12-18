@@ -10,6 +10,8 @@
 *   [Environment Variables](file:///docs/development/ENVIRONMENT_VARIABLES.md): Detailed configuration guide.
 *   [Dependencies](file:///docs/development/DEPENDENCIES.md): Project dependencies.
 *   [Security Audit](file:///docs/development/SECURITY_AUDIT.md): Security findings.
+*   [Installation Guide](file:///docs/development/INSTALLATION.md): Node.js and dependency installation guide.
+*   [Audit Report](file:///docs/development/AUDIT_REPORT.md): Project audit and quality assessment report.
 
 ## Archived Reports
 > Historical reports have been moved to `docs/_archive/reports` to keep the active documentation clean.
