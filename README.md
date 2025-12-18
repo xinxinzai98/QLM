@@ -238,6 +238,8 @@ npm install
 - [API接口文档](docs/api/API.md) - 完整的API接口文档
 
 ### 部署文档
+- [Docker部署到阿里云ECS - 超详细教程](DOCKER_DEPLOYMENT_GUIDE.md) - 🐳 **零基础Docker部署教程（推荐）**
+- [快速部署指南](DEPLOYMENT_QUICK_START.md) - 5分钟快速部署（适合有经验的用户）
 - [部署指南](docs/deployment/DEPLOYMENT.md) - 详细的部署和配置说明
 
 ### 项目报告
