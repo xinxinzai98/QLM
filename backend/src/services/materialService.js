@@ -78,13 +78,8 @@ async function createMaterial(materialData, user) {
         throw error;
     }
 
-    // 检查物料编码是否已存在
-    const existingMaterial = await materialModel.findByCode(materialCode);
-    if (existingMaterial) {
-        const error = new Error('物料编码已存在');
-        error.status = 400;
-        throw error;
-    }
+    // 注意：物料编码不再要求唯一，允许重复编码
+    // 移除编码唯一性检查
 
     // 创建物料
     const result = await materialModel.create({
@@ -133,6 +128,17 @@ async function updateMaterial(id, updates, user) {
         throw error;
     }
 
+    // 如果更新了物料编码，记录变更历史
+    if (updates.materialCode && updates.materialCode !== material.material_code) {
+        await materialModel.recordCodeChange({
+            materialId: id,
+            oldCode: material.material_code,
+            newCode: updates.materialCode,
+            changedBy: user.id,
+            changeReason: updates.codeChangeReason || null
+        });
+    }
+
     // 更新物料
     const result = await materialModel.update(id, updates);
 
@@ -143,6 +149,10 @@ async function updateMaterial(id, updates, user) {
     }
 
     // 记录操作日志
+    const updateDetails = updates.materialCode && updates.materialCode !== material.material_code
+        ? `更新物料信息（编码：${material.material_code} → ${updates.materialCode}）`
+        : '更新物料信息';
+    
     await operationLogModel.create({
         userId: user.id,
         username: user.username,
@@ -150,7 +160,7 @@ async function updateMaterial(id, updates, user) {
         module: 'materials',
         targetType: 'material',
         targetId: id,
-        details: '更新物料信息'
+        details: updateDetails
     });
 
     return { id };

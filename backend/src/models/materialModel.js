@@ -88,17 +88,50 @@ async function findById(id) {
 }
 
 /**
- * 根据物料编码查找物料
+ * 根据物料编码查找物料（返回第一个匹配的物料）
+ * 注意：编码不再唯一，可能返回多个物料中的第一个
  * @param {string} materialCode - 物料编码
  * @returns {Promise<Object|null>}
  */
 async function findByCode(materialCode) {
     const material = await dbGet(
-        'SELECT id FROM materials WHERE material_code = ?',
+        'SELECT id FROM materials WHERE material_code = ? LIMIT 1',
         [materialCode]
     );
 
     return (material && material.id) ? material : null;
+}
+
+/**
+ * 根据物料编码查找所有匹配的物料
+ * @param {string} materialCode - 物料编码
+ * @returns {Promise<Array>}
+ */
+async function findAllByCode(materialCode) {
+    const materials = await dbAll(
+        'SELECT * FROM materials WHERE material_code = ?',
+        [materialCode]
+    );
+
+    return materials || [];
+}
+
+/**
+ * 记录物料编码变更历史
+ * @param {Object} historyData - 历史记录数据
+ * @returns {Promise<{lastID: number}>}
+ */
+async function recordCodeChange(historyData) {
+    const { materialId, oldCode, newCode, changedBy, changeReason } = historyData;
+
+    const result = await dbRun(
+        `INSERT INTO material_code_history 
+         (material_id, old_code, new_code, changed_by, change_reason) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [materialId, oldCode || null, newCode, changedBy, changeReason || null]
+    );
+
+    return result;
 }
 
 /**
@@ -147,6 +180,7 @@ async function create(materialData) {
  */
 async function update(id, updates) {
     const allowedFields = [
+        'material_code',
         'material_name',
         'category',
         'unit',
@@ -211,8 +245,10 @@ module.exports = {
     findAll,
     findById,
     findByCode,
+    findAllByCode,
     create,
     update,
     deleteById,
-    hasInventoryTransactions
+    hasInventoryTransactions,
+    recordCodeChange
 };

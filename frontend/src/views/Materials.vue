@@ -201,8 +201,15 @@
         :rules="formRules"
         :label-width="formLabelWidth"
       >
-        <el-form-item label="物料编码" prop="materialCode" v-if="!isEdit">
-          <el-input v-model="form.materialCode" placeholder="请输入物料编码" />
+        <el-form-item label="物料编码" prop="materialCode">
+          <el-input 
+            v-model="form.materialCode" 
+            placeholder="请输入物料编码"
+            :disabled="false"
+          />
+          <div v-if="isEdit" style="font-size: var(--font-size-xs); color: var(--color-neutral-500); margin-top: var(--spacing-1);">
+            注意：修改编码将被记录到历史记录中
+          </div>
         </el-form-item>
         <el-form-item label="物料名称" prop="materialName">
           <el-input v-model="form.materialName" placeholder="请输入物料名称" />
