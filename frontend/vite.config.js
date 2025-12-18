@@ -23,13 +23,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false, // 生产环境关闭sourcemap以减小体积
-    minify: 'terser', // 使用terser进行代码压缩
-    terserOptions: {
-      compress: {
-        drop_console: true, // 移除console.log
-        drop_debugger: true // 移除debugger
-      }
-    },
+    minify: 'esbuild', // 使用esbuild进行代码压缩（Vite自带，无需额外安装）
     // 代码分割配置
     rollupOptions: {
       output: {
