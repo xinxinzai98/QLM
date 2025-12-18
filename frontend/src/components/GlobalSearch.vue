@@ -106,11 +106,34 @@ const results = ref([]);
 const activeIndex = ref(-1);
 const inputRef = ref(null);
 
-// 高亮文本
+// 转义正则表达式特殊字符
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// 转义HTML特殊字符（XSS防护）
+const escapeHtml = (text) => {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+};
+
+// 高亮文本（安全版本，防止XSS）
 const highlightText = (text, query) => {
-  if (!text || !query) return text;
-  const regex = new RegExp(`(${query})`, 'gi');
-  return text.replace(regex, '<mark>$1</mark>');
+  if (!text || !query) return escapeHtml(String(text));
+  
+  // 转义文本和查询字符串，防止XSS
+  const escapedText = escapeHtml(String(text));
+  const escapedQuery = escapeRegExp(escapeHtml(String(query)));
+  
+  // 创建高亮标记
+  const regex = new RegExp(`(${escapedQuery})`, 'gi');
+  return escapedText.replace(regex, '<mark>$1</mark>');
 };
 
 // 获取类型图标
