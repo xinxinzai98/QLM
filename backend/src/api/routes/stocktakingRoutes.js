@@ -426,4 +426,101 @@ router.put('/:id/cancel', checkRole('system_admin', 'inventory_manager'), async 
   }
 });
 
+/**
+ * 获取盘点差异报告
+ * GET /api/stocktaking/:id/diff/report
+ */
+router.get('/:id/diff/report', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 获取任务信息
+    const task = await dbGet(
+      `SELECT 
+        st.*,
+        u1.real_name as creator_name,
+        u2.real_name as completed_by_name
+      FROM stocktaking_tasks st
+      LEFT JOIN users u1 ON st.creator_id = u1.id
+      LEFT JOIN users u2 ON st.completed_by = u2.id
+      WHERE st.id = ?`,
+      [id]
+    );
+
+    if (!task || !task.id) {
+      return res.status(404).json({ success: false, message: '盘点任务不存在' });
+    }
+
+    // 权限检查
+    if (req.user.role === 'regular_user' && task.creator_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: '无权查看此盘点任务' });
+    }
+
+    // 获取盘点明细（包含差异信息）
+    const items = await dbAll(
+      `SELECT 
+        si.*, 
+        m.material_code, 
+        m.material_name, 
+        m.unit, 
+        m.category
+      FROM stocktaking_items si
+      LEFT JOIN materials m ON si.material_id = m.id
+      WHERE si.task_id = ?
+      ORDER BY ABS(si.difference) DESC, si.id`,
+      [id]
+    );
+
+    // 计算统计数据
+    const totalItems = items.length;
+    const surplusItems = items.filter(i => i.difference_type === 'surplus');
+    const shortageItems = items.filter(i => i.difference_type === 'shortage');
+    const normalItems = items.filter(i => i.difference_type === 'normal' || !i.difference_type);
+
+    const report = {
+      task: {
+        id: task.id,
+        taskCode: task.task_code,
+        taskName: task.task_name,
+        status: task.status,
+        startDate: task.start_date,
+        endDate: task.end_date,
+        creatorName: task.creator_name,
+        completedByName: task.completed_by_name,
+        completedAt: task.completed_at,
+        createdAt: task.created_at
+      },
+      summary: {
+        totalItems,
+        surplusCount: surplusItems.length,
+        shortageCount: shortageItems.length,
+        normalCount: normalItems.length,
+        totalSurplus: surplusItems.reduce((sum, i) => sum + (i.difference || 0), 0),
+        totalShortage: Math.abs(shortageItems.reduce((sum, i) => sum + (i.difference || 0), 0)),
+        totalDifference: items.reduce((sum, i) => sum + (i.difference || 0), 0)
+      },
+      items: items.map(item => ({
+        id: item.id,
+        materialId: item.material_id,
+        materialCode: item.material_code,
+        materialName: item.material_name,
+        unit: item.unit,
+        category: item.category,
+        bookStock: item.book_stock,
+        actualStock: item.actual_stock,
+        difference: item.difference,
+        differenceType: item.difference_type,
+        remark: item.remark
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: report
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
