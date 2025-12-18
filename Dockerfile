@@ -8,7 +8,7 @@ COPY frontend/package*.json ./
 
 # 安装前端依赖
 RUN npm config set registry https://registry.npmmirror.com
-RUN npm ci --only=production=false
+RUN npm ci
 
 # 复制前端源代码
 COPY frontend/ .
@@ -24,9 +24,9 @@ WORKDIR /app/backend
 # 复制后端package文件
 COPY backend/package*.json ./
 
-# 安装后端依赖（包括生产依赖）
+# 安装后端依赖（仅生产依赖）
 RUN npm config set registry https://registry.npmmirror.com
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # 多阶段构建 - 生产运行阶段
 FROM node:18-alpine AS production

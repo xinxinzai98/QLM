@@ -7,7 +7,7 @@
 node_modules
 npm-debug.log
 yarn-error.log
-package-lock.json
+# package-lock.json 需要保留，供 npm ci 使用
 yarn.lock
 pnpm-lock.yaml
 
