@@ -184,29 +184,82 @@ if not exist .env (
 )
 popd
 
-echo [4/4] 启动后端服务...
-start "MMS后端服务" cmd /k "cd /d \"%PROJECT_ROOT%\backend\" && npm start"
-timeout /t 3 /nobreak >nul
-
-echo [5/5] 启动前端服务...
-start "MMS前端服务" cmd /k "cd /d \"%PROJECT_ROOT%\frontend\" && npm run dev"
+echo [4/5] 启动后端服务...
+start "MMS后端服务" cmd /k "cd /d \"%PROJECT_ROOT%\backend\" && echo 正在启动后端服务... && npm start"
 timeout /t 5 /nobreak >nul
 
+echo [5/5] 启动前端服务...
+start "MMS前端服务" cmd /k "cd /d \"%PROJECT_ROOT%\frontend\" && echo 正在启动前端服务... && npm run dev"
+timeout /t 8 /nobreak >nul
+
 echo.
 echo ========================================
-echo 启动完成！
+echo 服务启动中...
 echo ========================================
-echo 后端服务: http://localhost:3000
-echo 前端服务: http://localhost:5173
 echo.
-echo 正在打开浏览器...
-timeout /t 2 /nobreak >nul
-start http://localhost:5173
+echo 请检查新打开的命令行窗口：
+echo - "MMS后端服务" 窗口应该显示后端服务启动信息
+echo - "MMS前端服务" 窗口应该显示 Vite 开发服务器信息
 echo.
-echo 提示：
-echo - 关闭此窗口不会停止服务
-echo - 要停止服务，请关闭对应的命令行窗口
-echo - 默认管理员账户: admin / admin123
+echo 如果服务启动失败，请查看对应窗口的错误信息
+echo.
+echo 等待服务启动（15秒）...
+timeout /t 15 /nobreak >nul
+
+:: 检查服务是否启动
+echo.
+echo 检查服务状态...
+set BACKEND_RUNNING=0
+set FRONTEND_RUNNING=0
+
+netstat -ano 2>nul | findstr ":3000" | findstr "LISTENING" >nul
+if %errorlevel% equ 0 (
+    set BACKEND_RUNNING=1
+    echo [OK] 后端服务已启动 (http://localhost:3000)
+) else (
+    echo [X] 后端服务未启动，请查看"MMS后端服务"窗口的错误信息
+)
+
+netstat -ano 2>nul | findstr ":5173" | findstr "LISTENING" >nul
+if %errorlevel% equ 0 (
+    set FRONTEND_RUNNING=1
+    echo [OK] 前端服务已启动 (http://localhost:5173)
+) else (
+    echo [X] 前端服务未启动，请查看"MMS前端服务"窗口的错误信息
+)
+
+echo.
+if %BACKEND_RUNNING% equ 1 if %FRONTEND_RUNNING% equ 1 (
+    echo ========================================
+    echo 启动成功！
+    echo ========================================
+    echo 后端服务: http://localhost:3000
+    echo 前端服务: http://localhost:5173
+    echo.
+    echo 正在打开浏览器...
+    timeout /t 2 /nobreak >nul
+    start http://localhost:5173
+    echo.
+    echo 提示：
+    echo - 关闭此窗口不会停止服务
+    echo - 要停止服务，请关闭对应的命令行窗口（MMS后端服务 / MMS前端服务）
+    echo - 默认管理员账户: admin / admin123
+) else (
+    echo ========================================
+    echo 部分服务启动失败
+    echo ========================================
+    echo.
+    echo 请检查新打开的命令行窗口中的错误信息
+    echo 或手动启动服务：
+    echo.
+    echo 后端服务：
+    echo   cd backend
+    echo   npm start
+    echo.
+    echo 前端服务：
+    echo   cd frontend
+    echo   npm run dev
+)
 echo.
 pause
 
