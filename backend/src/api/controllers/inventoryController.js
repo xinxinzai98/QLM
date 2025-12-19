@@ -86,7 +86,11 @@ async function approveTransaction(req, res, next) {
 async function cancelTransaction(req, res, next) {
     try {
         const { id } = req.params;
-        await inventoryService.cancelTransaction(parseInt(id), req.user);
+        const requestInfo = {
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+        };
+        await inventoryService.cancelTransaction(parseInt(id), req.user, requestInfo);
         res.json({
             success: true,
             message: '出入库单已取消'
