@@ -258,6 +258,18 @@ async function cancelTransaction(id, user) {
     }
 
     await inventoryModel.cancel(id);
+
+    // 记录操作日志
+    await operationLogModel.create({
+        userId: user.id,
+        action: 'cancel',
+        module: 'inventory',
+        targetType: 'transaction',
+        targetId: id,
+        details: '取消出入库单',
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
+    });
 }
 
 /**
