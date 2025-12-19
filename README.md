@@ -70,19 +70,31 @@ chmod +x start.sh
    - 支持化学物料和金属物料两种类别
    - 库存阈值设置（最低/最高库存）
    - 物料搜索和筛选
+   - 物料编码历史追踪（支持非唯一编码）
+   - 物料编码变更记录和原因追溯
 
 3. **出入库管理**
    - 创建出入库单（普通人员）
    - 出入库单审批流程（库存管理员）
    - 自动库存更新
    - 出入库历史记录
+   - 单价可选（支持不填写单价的出入库）
 
-4. **仪表盘**
-   - 实时统计数据
+4. **物料盘点**
+   - 创建盘点任务
+   - 批量物料盘点录入
+   - 自动计算盘盈盘亏
+   - 盘点差异报告生成
+   - 盘点完成自动更新库存
+   - 盘点历史记录查询
+
+5. **仪表盘**
+   - 实时统计数据（可点击跳转到对应页面）
    - 物料分类图表
    - 出入库趋势分析
    - 低库存预警
    - 待审批单提醒
+   - 实时日期时间显示（支持时间同步）
 
 ### 角色权限
 
@@ -94,14 +106,24 @@ chmod +x start.sh
 
 ### 前端
 - Vue 3 + Vite
-- Element Plus
-- Pinia
-- ECharts
+- Element Plus（响应式设计，支持移动端、平板、桌面）
+- Pinia（状态管理）
+- ECharts（数据可视化）
+- Composition API（现代化开发模式）
 
 ### 后端
 - Node.js + Express
-- SQLite3
-- JWT认证
+- SQLite3（轻量级数据库）
+- JWT认证（安全的用户认证）
+- Express中间件（验证、错误处理、日志记录）
+
+### 测试
+- Jest（单元测试和集成测试）
+- 测试覆盖率统计
+
+### 部署
+- Docker & Docker Compose
+- 支持开发、测试、生产环境
 
 ## 手动安装（如需要）
 
@@ -153,9 +175,16 @@ npm run dev
 │   │   └── utils/         # 工具函数
 │   └── package.json
 ├── backend/           # 后端源代码
-│   ├── routes/        # 路由文件
-│   ├── database/      # 数据库相关
-│   ├── middleware/    # 中间件
+│   ├── src/           # 源代码目录
+│   │   ├── api/       # API路由
+│   │   ├── database/  # 数据库相关
+│   │   ├── middleware/# 中间件
+│   │   ├── models/    # 数据模型
+│   │   ├── services/  # 业务逻辑层
+│   │   └── utils/     # 工具函数
+│   ├── __tests__/     # 后端测试文件
+│   │   ├── unit/      # 单元测试
+│   │   └── integration/ # 集成测试
 │   └── uploads/       # 上传文件目录
 ├── docs/              # 文档目录
 │   ├── api/           # API文档
@@ -165,11 +194,17 @@ npm run dev
 │   └── _archive/      # 历史文档归档
 ├── scripts/           # 脚本目录
 │   ├── windows/       # Windows脚本
-│   └── *.sh           # Linux/Mac脚本
+│   ├── *.sh           # Linux/Mac脚本
+│   ├── *.ps1          # PowerShell脚本
+│   ├── update.sh      # 代码更新脚本
+│   ├── backup.sh      # 数据备份脚本
+│   ├── restore.sh     # 数据恢复脚本
+│   ├── status.sh      # 服务状态检查脚本
+│   └── logs.sh        # 日志查看脚本
 ├── ops/               # 运维配置
 │   └── nginx/         # Nginx配置
 ├── Dockerfile         # Docker构建文件
-├── docker-compose*.yml # Docker Compose配置
+├── docker-compose*.yml # Docker Compose配置（dev/test/prod）
 └── README.md          # 本文件
 ```
 
@@ -206,6 +241,32 @@ DB_PATH=./database/mms.db
 - 创建所有数据表
 - 创建默认管理员账户（admin/admin123）
 
+## 系统特性
+
+### 响应式设计
+- ✅ 完整支持移动端、平板、桌面设备
+- ✅ 自适应布局和响应式表格
+- ✅ 移动端优化的表单和对话框
+- ✅ 触摸友好的交互设计
+
+### 安全特性
+- ✅ JWT身份认证和授权
+- ✅ SQL注入防护（参数化查询）
+- ✅ XSS防护（输入验证和输出转义）
+- ✅ 文件上传验证
+- ✅ 基于角色的访问控制（RBAC）
+
+### 性能优化
+- ✅ 前端代码分割和懒加载
+- ✅ API响应压缩
+- ✅ 数据库查询优化
+- ✅ 前端防抖和节流
+
+### 测试覆盖
+- ✅ 单元测试（物料计算、权限检查、工具函数）
+- ✅ 集成测试（出入库流程、盘点功能、权限切换）
+- ✅ 测试覆盖率统计
+
 ## 常见问题
 
 ### 端口被占用
@@ -226,6 +287,18 @@ npm install
 ### 数据库初始化失败
 
 删除 `backend/mms.db` 文件后重新启动，系统会自动重新初始化数据库。
+
+### 运行测试
+
+```bash
+# 后端测试
+cd backend
+npm test
+
+# 查看测试覆盖率
+npm run test:unit
+npm run test:integration
+```
 
 ## 📚 文档
 
@@ -249,6 +322,19 @@ npm install
 ### 更多文档
 - [文档索引](docs/INDEX.md) - 完整文档导航
 - [维护指南](docs/MAINTENANCE.md) - 系统维护和运维指南
+- [Git清理指南](docs/GIT_CLEANUP_QUICK_START.md) - Git历史清理快速指南
+
+### 项目优化阶段报告
+
+项目已完成7个阶段的系统性优化：
+
+- [阶段1：项目结构优化](docs/PHASE1_CLEANUP_SUMMARY.md) - 项目结构清理和文档整理
+- [阶段2：响应式布局优化](docs/PHASE2_RESPONSIVE_FIX_SUMMARY.md) - 移动端和平板适配
+- [阶段3：前端界面优化](docs/PHASE3_FRONTEND_OPTIMIZATION_SUMMARY.md) - 日期时间显示、Dashboard优化
+- [阶段4：物料盘点模块](docs/PHASE4_STOCKTAKING_SUMMARY.md) - 完整的盘点功能实现
+- [阶段5：业务逻辑优化](docs/PHASE5_BUSINESS_LOGIC_CHANGES_SUMMARY.md) - 物料编码非唯一、单价可选
+- [阶段6：代码审计](docs/PHASE6_CODE_AUDIT_REPORT.md) - 安全性和性能审计
+- [阶段7：测试实施](docs/PHASE7_TESTING_SUMMARY.md) - 单元测试和集成测试
 
 > **历史报告**：项目历史报告和审查报告已归档到 `docs/_archive/reports/` 目录，可通过文档索引访问。
 
