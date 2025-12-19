@@ -41,7 +41,7 @@
         <el-card 
           class="stat-card" 
           shadow="hover"
-          @click="handleStatCardClick(index)"
+          @click="handleStatClick(index)"
         >
           <div class="stat-content">
             <div class="stat-icon" :style="{ backgroundColor: stat.color }">
@@ -155,6 +155,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, markRaw } from 'vue';
+import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
 import api from '@/utils/api';
 import { ElMessage } from 'element-plus';
