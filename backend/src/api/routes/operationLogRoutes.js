@@ -9,8 +9,9 @@ router.use(authenticateToken);
 
 // 记录操作日志的中间件函数（供其他模块调用）
 const logOperation = (req, module, action, resourceType = null, resourceId = null, description = null) => {
-  const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
-  const userAgent = req.headers['user-agent'] || '';
+  const { getClientIP, getUserAgent } = require('../../utils/requestHelper');
+  const ipAddress = getClientIP(req);
+  const userAgent = getUserAgent(req);
 
   db.run(
     `INSERT INTO operation_logs 

@@ -50,9 +50,10 @@ async function getMaterialById(id) {
  * 创建物料
  * @param {Object} materialData - 物料数据
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function createMaterial(materialData, user) {
+async function createMaterial(materialData, user, requestInfo = {}) {
     const {
         materialCode,
         materialName,
@@ -97,12 +98,13 @@ async function createMaterial(materialData, user) {
     // 记录操作日志
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'create',
         module: 'materials',
         targetType: 'material',
         targetId: result.lastID,
-        details: `创建物料: ${materialName}`
+        details: `创建物料: ${materialName}`,
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 
     return {
@@ -117,9 +119,10 @@ async function createMaterial(materialData, user) {
  * @param {number} id - 物料ID
  * @param {Object} updates - 更新数据
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function updateMaterial(id, updates, user) {
+async function updateMaterial(id, updates, user, requestInfo = {}) {
     // 检查物料是否存在
     const material = await materialModel.findById(id);
     if (!material) {
@@ -155,12 +158,13 @@ async function updateMaterial(id, updates, user) {
     
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'update',
         module: 'materials',
         targetType: 'material',
         targetId: id,
-        details: updateDetails
+        details: updateDetails,
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 
     return { id };
@@ -170,9 +174,10 @@ async function updateMaterial(id, updates, user) {
  * 删除物料
  * @param {number} id - 物料ID
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<void>}
  */
-async function deleteMaterial(id, user) {
+async function deleteMaterial(id, user, requestInfo = {}) {
     // 检查物料是否存在
     const material = await materialModel.findById(id);
     if (!material) {
@@ -195,12 +200,13 @@ async function deleteMaterial(id, user) {
     // 记录操作日志
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'delete',
         module: 'materials',
         targetType: 'material',
         targetId: id,
-        details: '删除物料'
+        details: '删除物料',
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 }
 

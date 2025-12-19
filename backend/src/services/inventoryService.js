@@ -14,9 +14,10 @@ const { dbRun } = require('../utils/dbHelper');
  * 创建出入库单
  * @param {Object} transactionData - 出入库单数据
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function createTransaction(transactionData, user) {
+async function createTransaction(transactionData, user, requestInfo = {}) {
     const { transactionType, materialId, quantity, unitPrice, remark } = transactionData;
 
     // 检查物料是否存在
@@ -47,12 +48,13 @@ async function createTransaction(transactionData, user) {
     // 记录操作日志
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'create',
         module: 'inventory',
         targetType: 'transaction',
         targetId: result.lastID,
-        details: `创建${transactionType === 'in' ? '入库' : '出库'}单: ${result.transactionCode}`
+        details: `创建${transactionType === 'in' ? '入库' : '出库'}单: ${result.transactionCode}`,
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 
     // 创建待办通知给审批人(异步)
@@ -129,9 +131,10 @@ async function getTransactionById(id, user) {
  * @param {string} action - 'approve' 或 'reject'
  * @param {string} remark - 审批备注
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function approveTransaction(id, action, remark, user) {
+async function approveTransaction(id, action, remark, user, requestInfo = {}) {
     if (!action || !['approve', 'reject'].includes(action)) {
         const error = new Error('操作类型必须是 approve 或 reject');
         error.status = 400;
@@ -207,12 +210,13 @@ async function approveTransaction(id, action, remark, user) {
         // 记录操作日志(放在事务外)
         await operationLogModel.create({
             userId: user.id,
-            username: user.username,
             action: action === 'approve' ? 'approve' : 'reject',
             module: 'inventory',
             targetType: 'transaction',
             targetId: id,
-            details: `${action === 'approve' ? '批准' : '拒绝'}出入库单`
+            details: `${action === 'approve' ? '批准' : '拒绝'}出入库单`,
+            ipAddress: requestInfo.ipAddress || null,
+            userAgent: requestInfo.userAgent || null
         });
 
         return {

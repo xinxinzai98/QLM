@@ -1,4 +1,5 @@
 const inventoryService = require('../../services/inventoryService');
+const { getClientIP, getUserAgent } = require('../../utils/requestHelper');
 
 /**
  * 出入库控制器 (Inventory Controller)
@@ -10,7 +11,11 @@ const inventoryService = require('../../services/inventoryService');
  */
 async function createTransaction(req, res, next) {
     try {
-        const data = await inventoryService.createTransaction(req.body, req.user);
+        const requestInfo = {
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+        };
+        const data = await inventoryService.createTransaction(req.body, req.user, requestInfo);
         res.status(201).json({
             success: true,
             message: '出入库单创建成功,等待审批',
