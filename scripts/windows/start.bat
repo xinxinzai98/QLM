@@ -6,8 +6,8 @@ echo 物料管理系统 - 一键启动脚本
 echo ========================================
 echo.
 
-:: 切换到项目根目录（脚本在scripts/windows目录下）
-cd /d %~dp0..
+:: 切换到项目根目录（脚本在scripts/windows目录下，需要向上两级）
+cd /d %~dp0..\..
 
 :: 检查Node.js是否安装
 where node >nul 2>&1
