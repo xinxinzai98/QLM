@@ -138,7 +138,11 @@
         </el-table-column>
         <el-table-column prop="applicant_name" label="申请人" width="100" />
         <el-table-column prop="approver_name" label="审批人" width="100" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
@@ -257,7 +261,8 @@
             :min="0"
             :precision="2"
             style="width: 100%"
-            placeholder="可选"
+            placeholder="可选（可不填）"
+            :controls="false"
           />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -548,6 +553,19 @@ const handleCancel = (row) => {
   }).catch(() => {});
 };
 
+// 格式化日期时间
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return;
@@ -556,7 +574,14 @@ const handleSubmit = async () => {
     if (valid) {
       submitLoading.value = true;
       try {
-        const response = await api.post('/inventory', form);
+        // 如果单价为空或null，将其设置为undefined，避免发送空字符串
+        const submitData = {
+          ...form,
+          unitPrice: (form.unitPrice === null || form.unitPrice === '' || form.unitPrice === undefined) 
+            ? undefined 
+            : Number(form.unitPrice)
+        };
+        const response = await api.post('/inventory', submitData);
         if (response.data.success) {
           handleSuccess('创建成功，等待审批');
           dialogVisible.value = false;
