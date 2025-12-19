@@ -107,7 +107,6 @@ timeout /t 1 /nobreak >nul
 echo.
 
 echo [1/4] 检查后端依赖...
-cd /d %~dp0..
 pushd backend
 if not exist node_modules (
     echo 正在安装后端依赖，请稍候...
