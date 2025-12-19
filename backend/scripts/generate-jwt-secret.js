@@ -12,8 +12,8 @@ const generateSecret = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// 读取现有的.env文件
-const envPath = path.join(__dirname, '.env');
+// 读取现有的.env文件（.env应该在backend目录下，而不是scripts目录下）
+const envPath = path.join(__dirname, '..', '.env');
 let envContent = '';
 
 if (fs.existsSync(envPath)) {

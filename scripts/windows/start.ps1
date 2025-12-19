@@ -157,15 +157,32 @@ if (-not (Test-Path "node_modules")) {
 }
 Pop-Location
 
+# 检查环境变量配置
+Write-Host "[3/4] 检查环境变量配置..." -ForegroundColor Cyan
+Push-Location backend
+if (-not (Test-Path ".env")) {
+    Write-Host "[提示] .env文件不存在，正在生成..." -ForegroundColor Yellow
+    if (Test-Path "scripts\generate-jwt-secret.js") {
+        node scripts\generate-jwt-secret.js
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[警告] 无法自动生成.env文件" -ForegroundColor Yellow
+            Write-Host "请手动创建backend/.env文件并设置JWT_SECRET" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "[警告] 未找到生成脚本，请手动创建backend/.env文件" -ForegroundColor Yellow
+    }
+}
+Pop-Location
+
 # 启动后端服务
-Write-Host "[3/4] 启动后端服务..." -ForegroundColor Cyan
-$backendPath = Join-Path $PSScriptRoot "backend"
+Write-Host "[4/5] 启动后端服务..." -ForegroundColor Cyan
+$backendPath = Join-Path $projectRoot "backend"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; npm start" -WindowStyle Normal
 Start-Sleep -Seconds 3
 
 # 启动前端服务
-Write-Host "[4/4] 启动前端服务..." -ForegroundColor Cyan
-$frontendPath = Join-Path $PSScriptRoot "frontend"
+Write-Host "[5/5] 启动前端服务..." -ForegroundColor Cyan
+$frontendPath = Join-Path $projectRoot "frontend"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendPath'; npm run dev" -WindowStyle Normal
 Start-Sleep -Seconds 5
 

@@ -6,6 +6,9 @@ echo 物料管理系统 - 一键启动脚本
 echo ========================================
 echo.
 
+:: 切换到项目根目录（脚本在scripts/windows目录下）
+cd /d %~dp0..
+
 :: 检查Node.js是否安装
 where node >nul 2>&1
 if %errorlevel% neq 0 (
@@ -104,6 +107,7 @@ timeout /t 1 /nobreak >nul
 echo.
 
 echo [1/4] 检查后端依赖...
+cd /d %~dp0..
 pushd backend
 if not exist node_modules (
     echo 正在安装后端依赖，请稍候...
@@ -168,20 +172,25 @@ echo [3/4] 检查环境变量配置...
 pushd backend
 if not exist .env (
     echo [提示] .env文件不存在，正在生成...
-    call node generate-jwt-secret.js
-    if %errorlevel% neq 0 (
-        echo [警告] 无法自动生成.env文件
-        echo 请手动创建backend/.env文件并设置JWT_SECRET
-        echo 参考: backend/.env.example
+    if exist scripts\generate-jwt-secret.js (
+        call node scripts\generate-jwt-secret.js
+        if %errorlevel% neq 0 (
+            echo [警告] 无法自动生成.env文件
+            echo 请手动创建backend/.env文件并设置JWT_SECRET
+        )
+    ) else (
+        echo [警告] 未找到生成脚本，请手动创建backend/.env文件并设置JWT_SECRET
     )
 )
 popd
 
 echo [4/4] 启动后端服务...
+cd /d %~dp0..
 start "MMS后端服务" cmd /k "cd /d %~dp0backend && npm start"
 timeout /t 3 /nobreak >nul
 
 echo [5/5] 启动前端服务...
+cd /d %~dp0..
 start "MMS前端服务" cmd /k "cd /d %~dp0frontend && npm run dev"
 timeout /t 5 /nobreak >nul
 
