@@ -184,13 +184,13 @@ if not exist .env (
 popd
 
 echo [4/4] 启动后端服务...
-cd /d %~dp0..
-start "MMS后端服务" cmd /k "cd /d %~dp0backend && npm start"
+cd /d %~dp0..\..
+start "MMS后端服务" cmd /k "cd /d %~dp0..\..\backend && npm start"
 timeout /t 3 /nobreak >nul
 
 echo [5/5] 启动前端服务...
-cd /d %~dp0..
-start "MMS前端服务" cmd /k "cd /d %~dp0frontend && npm run dev"
+cd /d %~dp0..\..
+start "MMS前端服务" cmd /k "cd /d %~dp0..\..\frontend && npm run dev"
 timeout /t 5 /nobreak >nul
 
 echo.
