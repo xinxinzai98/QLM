@@ -1,6 +1,11 @@
 # 物料管理系统 - PowerShell一键启动脚本
 # 编码: UTF-8
 
+# 切换到项目根目录（脚本在scripts/windows目录下，需要向上两级）
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = Split-Path -Parent (Split-Path -Parent $scriptPath)
+Set-Location $projectRoot
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "物料管理系统 - 一键启动脚本" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
