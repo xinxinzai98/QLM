@@ -330,8 +330,8 @@
         </el-descriptions-item>
         <el-descriptions-item label="申请人">{{ currentTransaction.applicant_name }}</el-descriptions-item>
         <el-descriptions-item label="审批人">{{ currentTransaction.approver_name || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentTransaction.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="审批时间">{{ currentTransaction.approved_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(currentTransaction.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="审批时间">{{ currentTransaction.approved_at ? formatDateTime(currentTransaction.approved_at) : '-' }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">
           {{ currentTransaction.remark || '-' }}
         </el-descriptions-item>
