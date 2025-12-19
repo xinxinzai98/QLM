@@ -180,6 +180,8 @@ const iconMap = {
   Clock
 };
 
+const router = useRouter();
+
 // 静态配置 - 不放入响应式对象中，避免Vue组件代理警告
 const statsConfig = [
   { label: '物料总数', icon: Box, color: COLORS.primary },
