@@ -7,7 +7,8 @@ echo ========================================
 echo.
 
 :: 切换到项目根目录（脚本在scripts/windows目录下，需要向上两级）
-cd /d %~dp0..\..
+set "PROJECT_ROOT=%~dp0..\.."
+cd /d "%PROJECT_ROOT%"
 
 :: 检查Node.js是否安装
 where node >nul 2>&1
@@ -184,13 +185,11 @@ if not exist .env (
 popd
 
 echo [4/4] 启动后端服务...
-cd /d %~dp0..\..
-start "MMS后端服务" cmd /k "cd /d %~dp0..\..\backend && npm start"
+start "MMS后端服务" cmd /k "cd /d \"%PROJECT_ROOT%\backend\" && npm start"
 timeout /t 3 /nobreak >nul
 
 echo [5/5] 启动前端服务...
-cd /d %~dp0..\..
-start "MMS前端服务" cmd /k "cd /d %~dp0..\..\frontend && npm run dev"
+start "MMS前端服务" cmd /k "cd /d \"%PROJECT_ROOT%\frontend\" && npm run dev"
 timeout /t 5 /nobreak >nul
 
 echo.
