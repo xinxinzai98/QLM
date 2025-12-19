@@ -20,7 +20,7 @@ if ($dbFiles) {
         Write-Host "  ❌ $_" -ForegroundColor Red
     }
 } else {
-    Write-Host "  ✅ 没有数据库文件" -ForegroundColor Green
+    Write-Host "  OK 没有数据库文件" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -37,7 +37,7 @@ if ($coverageFiles) {
         Write-Host "  ... (还有 $($coverageFiles.Count - 10) 个文件)" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  ✅ 没有coverage文件" -ForegroundColor Green
+    Write-Host "  OK 没有coverage文件" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -54,7 +54,7 @@ if ($nodeModules) {
         Write-Host "  ... (还有 $($nodeModules.Count - 10) 个文件)" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  ✅ 没有node_modules文件" -ForegroundColor Green
+    Write-Host "  OK 没有node_modules文件" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -68,7 +68,7 @@ if ($logFiles) {
         Write-Host "  ❌ $_" -ForegroundColor Red
     }
 } else {
-    Write-Host "  ✅ 没有日志文件" -ForegroundColor Green
+    Write-Host "  OK 没有日志文件" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -82,7 +82,7 @@ if ($envFiles) {
         Write-Host "  ❌ $_" -ForegroundColor Red
     }
 } else {
-    Write-Host "  ✅ 没有环境变量文件（.env.example可以提交）" -ForegroundColor Green
+    Write-Host "  OK 没有环境变量文件（.env.example可以提交）" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -99,7 +99,7 @@ if ($distFiles) {
         Write-Host "  ... (还有 $($distFiles.Count - 10) 个文件)" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  ✅ 没有dist文件" -ForegroundColor Green
+    Write-Host "  OK 没有dist文件" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -109,7 +109,7 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
 if ($hasIssues) {
-    Write-Host "⚠️  发现问题文件！" -ForegroundColor Red
+    Write-Host "[!] 发现问题文件！" -ForegroundColor Red
     Write-Host ""
     Write-Host "建议操作：" -ForegroundColor Yellow
     Write-Host "1. 从Git索引中删除（保留本地文件）：" -ForegroundColor White
@@ -119,6 +119,6 @@ if ($hasIssues) {
     Write-Host "   docs/GIT_CLEANUP_QUICK_START.md" -ForegroundColor Gray
     Write-Host "   docs/GIT_HISTORY_CLEANUP_GUIDE.md" -ForegroundColor Gray
 } else {
-    Write-Host "✅ 没有发现问题文件！" -ForegroundColor Green
+    Write-Host "OK 没有发现问题文件！" -ForegroundColor Green
 }
 
