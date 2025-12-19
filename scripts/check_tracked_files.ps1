@@ -17,7 +17,7 @@ if ($dbFiles) {
     $hasIssues = $true
     Write-Host "发现数据库文件在Git中：" -ForegroundColor Yellow
     $dbFiles | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
 } else {
     Write-Host "  OK 没有数据库文件" -ForegroundColor Green
@@ -31,7 +31,7 @@ if ($coverageFiles) {
     $hasIssues = $true
     Write-Host "发现coverage文件在Git中：" -ForegroundColor Yellow
     $coverageFiles | Select-Object -First 10 | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
     if ($coverageFiles.Count -gt 10) {
         Write-Host "  ... (还有 $($coverageFiles.Count - 10) 个文件)" -ForegroundColor Yellow
@@ -48,7 +48,7 @@ if ($nodeModules) {
     $hasIssues = $true
     Write-Host "发现node_modules文件在Git中：" -ForegroundColor Yellow
     $nodeModules | Select-Object -First 10 | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
     if ($nodeModules.Count -gt 10) {
         Write-Host "  ... (还有 $($nodeModules.Count - 10) 个文件)" -ForegroundColor Yellow
@@ -65,7 +65,7 @@ if ($logFiles) {
     $hasIssues = $true
     Write-Host "发现日志文件在Git中：" -ForegroundColor Yellow
     $logFiles | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
 } else {
     Write-Host "  OK 没有日志文件" -ForegroundColor Green
@@ -79,7 +79,7 @@ if ($envFiles) {
     $hasIssues = $true
     Write-Host "发现环境变量文件在Git中（.env.example除外）：" -ForegroundColor Yellow
     $envFiles | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
 } else {
     Write-Host "  OK 没有环境变量文件（.env.example可以提交）" -ForegroundColor Green
@@ -93,7 +93,7 @@ if ($distFiles) {
     $hasIssues = $true
     Write-Host "发现dist文件在Git中：" -ForegroundColor Yellow
     $distFiles | Select-Object -First 10 | ForEach-Object {
-        Write-Host "  ❌ $_" -ForegroundColor Red
+        Write-Host "  [X] $_" -ForegroundColor Red
     }
     if ($distFiles.Count -gt 10) {
         Write-Host "  ... (还有 $($distFiles.Count - 10) 个文件)" -ForegroundColor Yellow
