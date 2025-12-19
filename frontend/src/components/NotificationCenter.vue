@@ -9,7 +9,7 @@
     <template #reference>
       <div class="notification-trigger" @click="loadNotifications">
         <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-          <el-icon :size="18" class="notification-icon">
+          <el-icon class="notification-icon">
             <Bell />
           </el-icon>
         </el-badge>

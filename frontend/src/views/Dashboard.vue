@@ -41,7 +41,7 @@
         <el-card 
           class="stat-card" 
           shadow="hover"
-          @click="handleStatClick(index)"
+          @click="handleStatCardClick(index)"
         >
           <div class="stat-content">
             <div class="stat-icon" :style="{ backgroundColor: stat.color }">
