@@ -83,3 +83,23 @@ coverage/
 .eslintcache
 .stylelintcache
 
+# ============================================
+# 脚本和工具文件（应该被忽略的部分）
+# ============================================
+
+# Git清理工具（一次性工具，不应该提交）
+scripts/clean_git_history.sh
+scripts/check_tracked_files.sh
+scripts/check_tracked_files.ps1
+
+# 本地开发诊断工具
+scripts/windows/check_services.ps1
+scripts/windows/install-dependencies.bat
+scripts/windows/fix-vulnerabilities.bat
+scripts/fix-vulnerabilities.sh
+
+# 空的package-lock.json（scripts目录下的）
+scripts/package-lock.json
+
+# 本地文档（如果只是临时说明文档）
+启动服务.md
