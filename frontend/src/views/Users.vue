@@ -70,7 +70,12 @@
         </template>
         <el-table-column prop="username" label="用户名" width="150" />
         <el-table-column prop="real_name" label="姓名" width="120" />
-        <el-table-column prop="email" label="邮箱" width="200" />
+        <el-table-column 
+          v-if="!isMobile"
+          prop="email" 
+          label="邮箱" 
+          width="200" 
+        />
         <el-table-column prop="role" label="角色" width="120">
           <template #default="{ row }">
             <el-tag
@@ -92,7 +97,12 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column 
+          v-if="!isMobile"
+          prop="created_at" 
+          label="创建时间" 
+          width="180" 
+        />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
@@ -133,14 +143,14 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="600px"
+      :width="dialogWidth"
       @close="handleDialogClose"
     >
       <el-form
         ref="formRef"
         :model="form"
         :rules="formRules"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="用户名" prop="username" v-if="!isEdit">
           <el-input v-model="form.username" placeholder="请输入用户名" />
@@ -193,7 +203,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import { handleApiError, handleSuccess } from '@/utils/errorHandler';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import { useResponsive } from '@/composables/useResponsive';
 
+const { dialogWidth, formLabelWidth, isMobile } = useResponsive();
 const userStore = useUserStore();
 
 const loading = ref(false);

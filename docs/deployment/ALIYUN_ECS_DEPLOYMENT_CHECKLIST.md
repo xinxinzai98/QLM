@@ -115,7 +115,7 @@ DB_PATH=./database/mms.db
 ### 4.1 必需文件检查
 
 - [ ] `Dockerfile` 存在且正确
-- [ ] `docker-compose.yml` 存在且正确
+- [ ] `docker-compose.prod.yml` 存在且正确
 - [ ] `.dockerignore` 存在且正确
 - [ ] `backend/` 目录完整
 - [ ] `frontend/` 目录完整

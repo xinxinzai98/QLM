@@ -38,7 +38,11 @@
     <!-- 实际内容 -->
     <el-row :gutter="20" class="stats-row" v-if="!initialLoading && moduleVisibility.stats">
       <el-col :xs="24" :sm="12" :md="6" v-for="(stat, index) in statsConfig" :key="stat.label">
-        <el-card class="stat-card" shadow="hover">
+        <el-card 
+          class="stat-card" 
+          shadow="hover"
+          @click="handleStatClick(index)"
+        >
           <div class="stat-content">
             <div class="stat-icon" :style="{ backgroundColor: stat.color }">
               <el-icon :size="30"><component :is="stat.icon" /></el-icon>
@@ -151,6 +155,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, markRaw } from 'vue';
+import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
 import api from '@/utils/api';
 import { ElMessage } from 'element-plus';
@@ -174,6 +179,8 @@ const iconMap = {
   Warning,
   Clock
 };
+
+const router = useRouter();
 
 // 静态配置 - 不放入响应式对象中，避免Vue组件代理警告
 const statsConfig = [
@@ -242,6 +249,20 @@ const handleLayoutChange = () => {
 const formatNumber = (num) => {
   if (num === null || num === undefined) return '0';
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+// 处理统计卡片点击跳转
+const handleStatClick = (index) => {
+  const routes = [
+    '/materials',           // 物料总数 -> 物料管理
+    '/inventory?status=pending', // 待审批单 -> 出入库管理（筛选待审批）
+    '/inventory',           // 今日出入库 -> 出入库管理
+    '/materials?filter=lowStock' // 低库存物料 -> 物料管理（筛选低库存）
+  ];
+  
+  if (routes[index]) {
+    router.push(routes[index]);
+  }
 };
 
 // 获取统计数据

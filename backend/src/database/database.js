@@ -107,11 +107,11 @@ const initializeDatabase = () => {
         }
       });
 
-      // 物料表
+      // 物料表（material_code_history表依赖此表，需先创建）
       db.run(`
         CREATE TABLE IF NOT EXISTS materials (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          material_code TEXT UNIQUE NOT NULL,
+          material_code TEXT NOT NULL,
           material_name TEXT NOT NULL,
           category TEXT NOT NULL CHECK(category IN ('chemical', 'metal')),
           unit TEXT NOT NULL,
@@ -124,6 +124,21 @@ const initializeDatabase = () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+      `);
+
+      // 物料编码历史表（必须在materials表之后创建）
+      db.run(`
+        CREATE TABLE IF NOT EXISTS material_code_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          material_id INTEGER NOT NULL,
+          old_code TEXT,
+          new_code TEXT NOT NULL,
+          changed_by INTEGER NOT NULL,
+          change_reason TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+          FOREIGN KEY (changed_by) REFERENCES users(id)
         )
       `);
 
@@ -292,9 +307,20 @@ const createIndexes = () => {
         if (err) console.error('创建用户角色索引失败:', err);
       });
 
-      // 物料表索引
-      db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_materials_code ON materials(material_code)', (err) => {
+      // 物料表索引（非唯一，允许编码重复）
+      db.run('CREATE INDEX IF NOT EXISTS idx_materials_code ON materials(material_code)', (err) => {
         if (err) console.error('创建物料编码索引失败:', err);
+      });
+
+      // 物料编码历史表索引
+      db.run('CREATE INDEX IF NOT EXISTS idx_material_code_history_material ON material_code_history(material_id)', (err) => {
+        if (err) console.error('创建物料编码历史物料索引失败:', err);
+      });
+      db.run('CREATE INDEX IF NOT EXISTS idx_material_code_history_code ON material_code_history(new_code)', (err) => {
+        if (err) console.error('创建物料编码历史编码索引失败:', err);
+      });
+      db.run('CREATE INDEX IF NOT EXISTS idx_material_code_history_created_at ON material_code_history(created_at DESC)', (err) => {
+        if (err) console.error('创建物料编码历史创建时间索引失败:', err);
       });
       db.run('CREATE INDEX IF NOT EXISTS idx_materials_category ON materials(category)', (err) => {
         if (err) console.error('创建物料类别索引失败:', err);

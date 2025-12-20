@@ -140,6 +140,15 @@
             >
               完成
             </el-button>
+            <el-button
+              v-if="row.status === 'completed' || row.status === 'in_progress'"
+              link
+              type="info"
+              size="small"
+              @click="handleViewReport(row)"
+            >
+              报告
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -381,6 +390,10 @@ import api from '@/utils/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import { handleApiError, handleSuccess } from '@/utils/errorHandler';
+import { useResponsive } from '@/composables/useResponsive';
+
+const { dialogWidth, dialogWidthLarge, formLabelWidth, descriptionColumns } = useResponsive();
 
 const userStore = useUserStore();
 
@@ -509,6 +522,27 @@ const handleView = async (row) => {
     handleApiError(error, '获取盘点任务详情失败');
   } finally {
     itemsLoading.value = false;
+  }
+};
+
+// 查看差异报告
+const reportDialogVisible = ref(false);
+const reportLoading = ref(false);
+const diffReport = ref(null);
+
+const handleViewReport = async (row) => {
+  reportLoading.value = true;
+  reportDialogVisible.value = true;
+  try {
+    const response = await api.get(`/stocktaking/${row.id}/diff/report`);
+    if (response.data.success) {
+      diffReport.value = response.data.data;
+    }
+  } catch (error) {
+    handleApiError(error, '获取差异报告失败');
+    reportDialogVisible.value = false;
+  } finally {
+    reportLoading.value = false;
   }
 };
 

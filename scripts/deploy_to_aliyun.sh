@@ -235,7 +235,7 @@ deploy_app() {
     
     # 复制必要文件
     cp Dockerfile "$TEMP_DIR/"
-    cp docker-compose.yml "$TEMP_DIR/"
+    cp docker-compose.prod.yml "$TEMP_DIR/"
     cp .dockerignore "$TEMP_DIR/"
     cp -r backend "$TEMP_DIR/"
     cp -r frontend "$TEMP_DIR/"
@@ -273,8 +273,8 @@ EOF
         cd $DEPLOY_DIR
         
         # 停止现有容器
-        if [ -f docker-compose.yml ]; then
-            docker-compose -p $COMPOSE_PROJECT_NAME down || true
+        if [ -f docker-compose.prod.yml ]; then
+            docker-compose -f docker-compose.prod.yml -p $COMPOSE_PROJECT_NAME down || true
         fi
         
         # 解压新版本
@@ -283,7 +283,7 @@ EOF
         
         # 设置文件权限
         chmod 600 .env.production
-        chmod 644 docker-compose.yml
+        chmod 644 docker-compose.prod.yml
         
         # 构建和启动（如果需要）
         if [ "$AUTO_START" = "true" ]; then

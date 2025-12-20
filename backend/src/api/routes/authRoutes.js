@@ -146,8 +146,9 @@ router.post('/login', authValidators.login, (req, res, next) => {
         );
 
         // 记录操作日志
-        const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
-        const userAgent = req.headers['user-agent'] || '';
+        const { getClientIP, getUserAgent } = require('../../utils/requestHelper');
+        const ipAddress = getClientIP(req);
+        const userAgent = getUserAgent(req);
         db.run(
           `INSERT INTO operation_logs 
            (user_id, module, action, description, ip_address, user_agent) 

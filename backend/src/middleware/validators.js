@@ -124,9 +124,23 @@ const inventoryValidators = {
       .toFloat(),
     
     body('unitPrice')
-      .optional()
-      .isFloat({ min: 0 }).withMessage('单价必须大于等于0')
-      .toFloat(),
+      .optional({ values: 'falsy' })
+      .custom((value) => {
+        if (value === null || value === undefined || value === '') {
+          return true; // 允许空值
+        }
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) {
+          throw new Error('单价必须大于等于0');
+        }
+        return true;
+      })
+      .customSanitizer((value) => {
+        if (value === null || value === undefined || value === '') {
+          return undefined; // 转换为undefined，不会传递给后续验证
+        }
+        return parseFloat(value);
+      }),
     
     body('remark')
       .optional()

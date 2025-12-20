@@ -1,4 +1,5 @@
 const materialService = require('../../services/materialService');
+const { getClientIP, getUserAgent } = require('../../utils/requestHelper');
 
 /**
  * 物料控制器 (Material Controller)
@@ -41,7 +42,11 @@ async function getMaterialById(req, res, next) {
  */
 async function createMaterial(req, res, next) {
     try {
-        const data = await materialService.createMaterial(req.body, req.user);
+        const requestInfo = {
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+        };
+        const data = await materialService.createMaterial(req.body, req.user, requestInfo);
         res.status(201).json({
             success: true,
             message: '物料创建成功',
@@ -58,7 +63,11 @@ async function createMaterial(req, res, next) {
 async function updateMaterial(req, res, next) {
     try {
         const { id } = req.params;
-        const data = await materialService.updateMaterial(parseInt(id), req.body, req.user);
+        const requestInfo = {
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+        };
+        const data = await materialService.updateMaterial(parseInt(id), req.body, req.user, requestInfo);
         res.json({
             success: true,
             message: '物料更新成功',
@@ -75,7 +84,11 @@ async function updateMaterial(req, res, next) {
 async function deleteMaterial(req, res, next) {
     try {
         const { id } = req.params;
-        await materialService.deleteMaterial(parseInt(id), req.user);
+        const requestInfo = {
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+        };
+        await materialService.deleteMaterial(parseInt(id), req.user, requestInfo);
         res.json({
             success: true,
             message: '物料删除成功'

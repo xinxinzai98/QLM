@@ -19,6 +19,10 @@ const exportRoutes = require('./api/routes/exportRoutes');
 
 const app = express();
 
+// 信任代理（用于正确获取客户端IP地址）
+// 在生产环境中，如果使用Nginx等反向代理，需要配置此项
+app.set('trust proxy', true);
+
 // 中间件配置
 app.use(cors());
 

@@ -47,6 +47,23 @@ html {
   }
 }
 
+/* 表格在移动端优化 */
+@media (max-width: 768px) {
+  /* Element Plus 表格在移动端的优化 */
+  .el-table {
+    font-size: var(--font-size-sm);
+  }
+  
+  .el-table :deep(.el-table__header) {
+    font-size: var(--font-size-xs);
+  }
+  
+  /* 表格列隐藏类（作为v-if的备用方案） */
+  .el-table :deep(.hide-on-mobile) {
+    display: none !important;
+  }
+}
+
 /* ============================================
    动画系统
    ============================================ */

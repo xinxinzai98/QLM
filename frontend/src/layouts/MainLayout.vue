@@ -130,6 +130,9 @@
           <!-- 全局搜索 -->
           <GlobalSearch ref="globalSearchRef" />
 
+          <!-- 日期时间 -->
+          <DateTimeClock />
+
           <!-- 消息中心 -->
           <NotificationCenter />
 
@@ -188,6 +191,7 @@ import { ElMessageBox } from 'element-plus';
 import { Fold, Expand, CirclePlus, DocumentAdd, QuestionFilled, Setting } from '@element-plus/icons-vue';
 import NotificationCenter from '@/components/NotificationCenter.vue';
 import GlobalSearch from '@/components/GlobalSearch.vue';
+import DateTimeClock from '@/components/DateTimeClock.vue';
 
 const route = useRoute();
 const router = useRouter();

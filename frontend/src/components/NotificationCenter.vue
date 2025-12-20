@@ -1,7 +1,7 @@
 <template>
   <el-popover
     placement="bottom-end"
-    :width="400"
+    :width="popoverWidth"
     trigger="click"
     v-model:visible="visible"
     popper-class="notification-popover"
@@ -9,7 +9,7 @@
     <template #reference>
       <div class="notification-trigger" @click="loadNotifications">
         <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-          <el-icon :size="16" class="notification-icon">
+          <el-icon class="notification-icon">
             <Bell />
           </el-icon>
         </el-badge>
@@ -146,6 +146,9 @@ import api from '@/utils/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Bell, Clock, Message, Delete, Warning, InfoFilled } from '@element-plus/icons-vue';
 import { handleApiError, handleSuccess } from '@/utils/errorHandler';
+import { useResponsive } from '@/composables/useResponsive';
+
+const { popoverWidth } = useResponsive();
 
 const router = useRouter();
 const visible = ref(false);

@@ -50,9 +50,10 @@ async function getMaterialById(id) {
  * 创建物料
  * @param {Object} materialData - 物料数据
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function createMaterial(materialData, user) {
+async function createMaterial(materialData, user, requestInfo = {}) {
     const {
         materialCode,
         materialName,
@@ -78,13 +79,8 @@ async function createMaterial(materialData, user) {
         throw error;
     }
 
-    // 检查物料编码是否已存在
-    const existingMaterial = await materialModel.findByCode(materialCode);
-    if (existingMaterial) {
-        const error = new Error('物料编码已存在');
-        error.status = 400;
-        throw error;
-    }
+    // 注意：物料编码不再要求唯一，允许重复编码
+    // 移除编码唯一性检查
 
     // 创建物料
     const result = await materialModel.create({
@@ -102,12 +98,13 @@ async function createMaterial(materialData, user) {
     // 记录操作日志
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'create',
         module: 'materials',
         targetType: 'material',
         targetId: result.lastID,
-        details: `创建物料: ${materialName}`
+        details: `创建物料: ${materialName}`,
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 
     return {
@@ -122,15 +119,27 @@ async function createMaterial(materialData, user) {
  * @param {number} id - 物料ID
  * @param {Object} updates - 更新数据
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<Object>}
  */
-async function updateMaterial(id, updates, user) {
+async function updateMaterial(id, updates, user, requestInfo = {}) {
     // 检查物料是否存在
     const material = await materialModel.findById(id);
     if (!material) {
         const error = new Error('物料不存在');
         error.status = 404;
         throw error;
+    }
+
+    // 如果更新了物料编码，记录变更历史
+    if (updates.materialCode && updates.materialCode !== material.material_code) {
+        await materialModel.recordCodeChange({
+            materialId: id,
+            oldCode: material.material_code,
+            newCode: updates.materialCode,
+            changedBy: user.id,
+            changeReason: updates.codeChangeReason || null
+        });
     }
 
     // 更新物料
@@ -143,14 +152,19 @@ async function updateMaterial(id, updates, user) {
     }
 
     // 记录操作日志
+    const updateDetails = updates.materialCode && updates.materialCode !== material.material_code
+        ? `更新物料信息（编码：${material.material_code} → ${updates.materialCode}）`
+        : '更新物料信息';
+    
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'update',
         module: 'materials',
         targetType: 'material',
         targetId: id,
-        details: '更新物料信息'
+        details: updateDetails,
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 
     return { id };
@@ -160,9 +174,10 @@ async function updateMaterial(id, updates, user) {
  * 删除物料
  * @param {number} id - 物料ID
  * @param {Object} user - 当前用户
+ * @param {Object} requestInfo - 请求信息 {ipAddress, userAgent}
  * @returns {Promise<void>}
  */
-async function deleteMaterial(id, user) {
+async function deleteMaterial(id, user, requestInfo = {}) {
     // 检查物料是否存在
     const material = await materialModel.findById(id);
     if (!material) {
@@ -185,12 +200,13 @@ async function deleteMaterial(id, user) {
     // 记录操作日志
     await operationLogModel.create({
         userId: user.id,
-        username: user.username,
         action: 'delete',
         module: 'materials',
         targetType: 'material',
         targetId: id,
-        details: '删除物料'
+        details: '删除物料',
+        ipAddress: requestInfo.ipAddress || null,
+        userAgent: requestInfo.userAgent || null
     });
 }
 

@@ -85,13 +85,28 @@
           </template>
         </el-table-column>
         <el-table-column prop="quantity" label="数量" width="100" />
-        <el-table-column prop="unit" label="单位" width="80" />
-        <el-table-column prop="unit_price" label="单价" width="100">
+        <el-table-column 
+          v-if="!isMobile"
+          prop="unit" 
+          label="单位" 
+          width="80" 
+        />
+        <el-table-column 
+          v-if="!isMobile"
+          prop="unit_price" 
+          label="单价" 
+          width="100"
+        >
           <template #default="{ row }">
             {{ row.unit_price ? `¥${row.unit_price}` : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="total_amount" label="总金额" width="100">
+        <el-table-column 
+          v-if="!isMobile"
+          prop="total_amount" 
+          label="总金额" 
+          width="100"
+        >
           <template #default="{ row }">
             {{ row.total_amount ? `¥${row.total_amount}` : '-' }}
           </template>
@@ -123,7 +138,11 @@
         </el-table-column>
         <el-table-column prop="applicant_name" label="申请人" width="100" />
         <el-table-column prop="approver_name" label="审批人" width="100" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
@@ -179,14 +198,14 @@
     <el-dialog
       v-model="dialogVisible"
       title="创建出入库单"
-      width="600px"
+      :width="dialogWidth"
       @close="handleDialogClose"
     >
       <el-form
         ref="formRef"
         :model="form"
         :rules="formRules"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="类型" prop="transactionType">
           <el-radio-group v-model="form.transactionType">
@@ -206,6 +225,7 @@
               v-for="material in materialOptions"
               :key="material.id"
               :value="material.id"
+              :label="`${material.material_name} (${material.material_code})`"
             >
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -241,7 +261,8 @@
             :min="0"
             :precision="2"
             style="width: 100%"
-            placeholder="可选"
+            placeholder="可选（可不填）"
+            :controls="false"
           />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -265,9 +286,9 @@
     <el-dialog
       v-model="viewDialogVisible"
       title="出入库单详情"
-      width="600px"
+      :width="dialogWidth"
     >
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="descriptionColumns" border>
         <el-descriptions-item label="单号">{{ currentTransaction.transaction_code }}</el-descriptions-item>
         <el-descriptions-item label="类型">
           <el-tag :type="currentTransaction.transaction_type === 'in' ? 'success' : 'warning'">
@@ -309,8 +330,8 @@
         </el-descriptions-item>
         <el-descriptions-item label="申请人">{{ currentTransaction.applicant_name }}</el-descriptions-item>
         <el-descriptions-item label="审批人">{{ currentTransaction.approver_name || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentTransaction.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="审批时间">{{ currentTransaction.approved_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(currentTransaction.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="审批时间">{{ currentTransaction.approved_at ? formatDateTime(currentTransaction.approved_at) : '-' }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">
           {{ currentTransaction.remark || '-' }}
         </el-descriptions-item>
@@ -321,12 +342,12 @@
     <el-dialog
       v-model="approveDialogVisible"
       title="审批出入库单"
-      width="500px"
+      :width="dialogWidth"
     >
       <el-form
         ref="approveFormRef"
         :model="approveForm"
-        label-width="100px"
+        :label-width="formLabelWidth"
       >
         <el-form-item label="操作">
           <el-radio-group v-model="approveForm.action">
@@ -362,7 +383,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import { handleApiError, handleSuccess } from '@/utils/errorHandler';
 import Breadcrumb from '@/components/Breadcrumb.vue';
+import { useResponsive } from '@/composables/useResponsive';
 
+const { dialogWidth, formLabelWidth, descriptionColumns, isMobile } = useResponsive();
 const userStore = useUserStore();
 
 const loading = ref(false);
@@ -530,6 +553,19 @@ const handleCancel = (row) => {
   }).catch(() => {});
 };
 
+// 格式化日期时间
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return;
@@ -538,7 +574,14 @@ const handleSubmit = async () => {
     if (valid) {
       submitLoading.value = true;
       try {
-        const response = await api.post('/inventory', form);
+        // 如果单价为空或null，将其设置为undefined，避免发送空字符串
+        const submitData = {
+          ...form,
+          unitPrice: (form.unitPrice === null || form.unitPrice === '' || form.unitPrice === undefined) 
+            ? undefined 
+            : Number(form.unitPrice)
+        };
+        const response = await api.post('/inventory', submitData);
         if (response.data.success) {
           handleSuccess('创建成功，等待审批');
           dialogVisible.value = false;
