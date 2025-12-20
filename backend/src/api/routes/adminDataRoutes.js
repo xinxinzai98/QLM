@@ -418,6 +418,11 @@ router.post('/export', (req, res, next) => {
         for (const table of tables) {
           const tableName = table.name;
 
+          // 验证表名（防止SQL注入）
+          if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+            throw new Error('无效的表名');
+          }
+
           // 获取表结构
           const columns = await dbAll(`PRAGMA table_info(${tableName})`);
 

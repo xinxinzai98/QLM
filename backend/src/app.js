@@ -17,6 +17,7 @@ const notificationRoutes = require('./api/routes/notificationRoutes');
 const searchRoutes = require('./api/routes/searchRoutes');
 const exportRoutes = require('./api/routes/exportRoutes');
 const adminDataRoutes = require('./api/routes/adminDataRoutes');
+const adminDataRoutes = require('./api/routes/adminDataRoutes');
 
 const app = express();
 
