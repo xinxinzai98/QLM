@@ -5,7 +5,8 @@
 # 用于更新生产环境代码并重新部署
 # ============================================
 
-set -e  # 遇到错误立即退出
+set -e  # 遇到错误立即退出（在关键步骤）
+set +H  # 禁用历史扩展，避免!字符问题
 
 # 颜色定义
 RED='\033[0;31m'
@@ -39,6 +40,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/backups}"
 COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${BRANCH:-main}"
+GITHUB_REPO="https://github.com/xinxinzai98/QLM.git"
 
 # 创建备份目录
 mkdir -p "$BACKUP_DIR"
@@ -65,6 +67,41 @@ check_files() {
     fi
     
     success "文件检查通过"
+}
+
+# 检查并配置Git远程仓库
+check_git_remote() {
+    info "检查Git远程仓库配置..."
+    
+    cd "$PROJECT_DIR"
+    
+    # 检查是否有远程仓库配置
+    if ! git remote | grep -q "^origin$"; then
+        warn "未找到origin远程仓库，正在配置..."
+        git remote add origin "$GITHUB_REPO"
+        success "已添加远程仓库: $GITHUB_REPO"
+    else
+        # 检查远程仓库URL是否正确
+        CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
+        if [ "$CURRENT_URL" != "$GITHUB_REPO" ]; then
+            warn "远程仓库URL不匹配，正在更新..."
+            warn "当前URL: $CURRENT_URL"
+            warn "目标URL: $GITHUB_REPO"
+            git remote set-url origin "$GITHUB_REPO"
+            success "已更新远程仓库URL: $GITHUB_REPO"
+        else
+            info "远程仓库配置正确: $GITHUB_REPO"
+        fi
+    fi
+    
+    # 验证远程仓库连接（可选，如果网络有问题会失败）
+    info "验证远程仓库连接..."
+    if git ls-remote --heads origin "$BRANCH" &>/dev/null; then
+        success "远程仓库连接正常，分支 $BRANCH 存在"
+    else
+        warn "无法验证远程分支 $BRANCH，但将继续尝试拉取"
+        warn "可能是网络问题或分支不存在，脚本将继续执行"
+    fi
 }
 
 # 备份数据
@@ -96,35 +133,106 @@ backup_data() {
 
 # 拉取最新代码
 pull_code() {
-    info "拉取最新代码（分支: $BRANCH）..."
+    info "拉取最新代码（分支: $BRANCH，仓库: $GITHUB_REPO）..."
+    
+    cd "$PROJECT_DIR"
     
     # 检查是否有未提交的更改
-    if [ -n "$(git status --porcelain)" ]; then
-        warn "检测到未提交的更改，建议先提交或暂存"
-        read -p "是否继续？(y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            error "操作已取消"
-            exit 1
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+        warn "检测到未提交的更改"
+        # 在生产环境中，我们自动暂存更改以避免冲突
+        warn "正在暂存本地更改..."
+        set +e  # 临时禁用错误退出
+        git stash push -m "Auto-stash before update $(date +%Y%m%d_%H%M%S)" 2>&1
+        STASH_RESULT=$?
+        set -e  # 重新启用错误退出
+        if [ $STASH_RESULT -ne 0 ]; then
+            warn "暂存失败，尝试清理未跟踪的文件..."
+            set +e
+            git clean -fd 2>&1
+            set -e
         fi
     fi
     
     # 获取更新前的commit
-    OLD_COMMIT=$(git rev-parse HEAD)
+    OLD_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
     
-    # 拉取最新代码
-    git fetch origin "$BRANCH"
-    git checkout "$BRANCH"
-    git pull origin "$BRANCH"
+    # 确保在正确的分支上
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+        info "当前分支: $CURRENT_BRANCH，切换到: $BRANCH"
+        set +e  # 临时禁用错误退出
+        git checkout "$BRANCH" 2>/dev/null
+        CHECKOUT_RESULT=$?
+        set -e  # 重新启用错误退出
+        
+        if [ $CHECKOUT_RESULT -ne 0 ]; then
+            warn "本地分支 $BRANCH 不存在，正在从远程创建..."
+            set +e
+            git fetch origin "$BRANCH:$BRANCH" 2>&1 || git checkout -b "$BRANCH" "origin/$BRANCH" 2>&1
+            CREATE_RESULT=$?
+            set -e
+            if [ $CREATE_RESULT -ne 0 ]; then
+                error "无法创建分支 $BRANCH"
+                error "请检查："
+                error "  1. 远程分支 $BRANCH 是否存在"
+                error "  2. 是否有足够权限"
+                exit 1
+            fi
+            success "已创建并切换到分支 $BRANCH"
+        else
+            success "已切换到分支 $BRANCH"
+        fi
+    else
+        info "当前已在分支 $BRANCH"
+    fi
+    
+    # 拉取最新代码（使用重试机制）
+    info "正在从远程仓库拉取代码..."
+    MAX_RETRIES=3
+    RETRY_COUNT=0
+    FETCH_SUCCESS=false
+    
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$FETCH_SUCCESS" = false ]; do
+        if git fetch origin "$BRANCH" 2>&1; then
+            FETCH_SUCCESS=true
+            success "代码拉取成功"
+        else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                warn "拉取失败，正在重试 ($RETRY_COUNT/$MAX_RETRIES)..."
+                sleep 2
+            else
+                error "拉取代码失败，已重试 $MAX_RETRIES 次"
+                error "请检查："
+                error "  1. 网络连接是否正常"
+                error "  2. GitHub仓库地址是否正确: $GITHUB_REPO"
+                error "  3. 分支名称是否正确: $BRANCH"
+                exit 1
+            fi
+        fi
+    done
+    
+    # 合并远程更改
+    info "正在合并远程更改..."
+    if git pull origin "$BRANCH" 2>&1; then
+        success "代码合并成功"
+    else
+        error "代码合并失败，可能存在冲突"
+        error "请手动解决冲突后重试"
+        git status
+        exit 1
+    fi
     
     # 获取更新后的commit
-    NEW_COMMIT=$(git rev-parse HEAD)
+    NEW_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
     
-    if [ "$OLD_COMMIT" != "$NEW_COMMIT" ]; then
+    if [ "$OLD_COMMIT" != "$NEW_COMMIT" ] && [ "$OLD_COMMIT" != "unknown" ]; then
         success "代码已更新"
         info "更新前: ${OLD_COMMIT:0:7}"
         info "更新后: ${NEW_COMMIT:0:7}"
-        git log --oneline "$OLD_COMMIT..$NEW_COMMIT" | head -5
+        info "更新内容："
+        git log --oneline "$OLD_COMMIT..$NEW_COMMIT" 2>/dev/null | head -10 || info "无法显示更新日志"
     else
         info "代码已是最新版本"
     fi
@@ -227,6 +335,7 @@ main() {
     # 检查
     check_root
     check_files
+    check_git_remote
     
     # 备份
     backup_data
