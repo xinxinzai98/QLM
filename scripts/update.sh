@@ -3,6 +3,17 @@
 # ============================================
 # 代码更新脚本
 # 用于更新生产环境代码并重新部署
+# 
+# GitHub仓库：https://github.com/xinxinzai98/QLM.git
+# 默认分支：main
+# 
+# 使用方法：
+#   cd /opt/QLM  # 或你的项目目录
+#   ./scripts/update.sh
+# 
+# 环境变量（可选）：
+#   BRANCH=main  # 指定分支，默认为main
+#   BACKUP_DIR=/path/to/backups  # 备份目录，默认为项目目录下的backups
 # ============================================
 
 set -e  # 遇到错误立即退出（在关键步骤）
@@ -40,10 +51,13 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/backups}"
 COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${BRANCH:-main}"
+# GitHub仓库地址（固定不变，不要修改）
 GITHUB_REPO="https://github.com/xinxinzai98/QLM.git"
 
 # 确保使用正确的Git仓库地址（固定不变）
 export GIT_TERMINAL_PROMPT=0  # 禁用Git交互式提示
+export GIT_HTTP_LOW_SPEED_LIMIT=0
+export GIT_HTTP_LOW_SPEED_TIME=999999
 
 # 创建备份目录
 mkdir -p "$BACKUP_DIR"
@@ -98,11 +112,13 @@ check_git_remote() {
     
     cd "$PROJECT_DIR"
     
-    # 确保Git配置正确
-    git config --global user.name "QLM Updater" 2>/dev/null || true
-    git config --global user.email "updater@qlm.local" 2>/dev/null || true
-    git config --global init.defaultBranch main 2>/dev/null || true
-    git config --global core.autocrlf input 2>/dev/null || true
+    # 确保Git配置正确（仅本地配置，不影响全局）
+    git config user.name "QLM Updater" 2>/dev/null || git config --global user.name "QLM Updater" 2>/dev/null || true
+    git config user.email "updater@qlm.local" 2>/dev/null || git config --global user.email "updater@qlm.local" 2>/dev/null || true
+    git config init.defaultBranch main 2>/dev/null || git config --global init.defaultBranch main 2>/dev/null || true
+    git config core.autocrlf input 2>/dev/null || git config --global core.autocrlf input 2>/dev/null || true
+    # 禁用SSL验证（如果阿里云ECS有SSL证书问题，可选）
+    # git config http.sslVerify false 2>/dev/null || true
     
     # 检查是否有远程仓库配置
     if ! git remote | grep -q "^origin$"; then
@@ -134,6 +150,13 @@ check_git_remote() {
     # 验证远程仓库连接（可选，如果网络有问题会失败）
     info "验证远程仓库连接..."
     set +e  # 临时禁用错误退出
+    
+    # 先测试网络连接
+    if ! ping -c 1 -W 3 github.com &>/dev/null && ! ping -c 1 -W 3 8.8.8.8 &>/dev/null; then
+        warn "网络连接可能有问题，但将继续尝试"
+    fi
+    
+    # 验证远程分支
     if git ls-remote --heads origin "$BRANCH" &>/dev/null; then
         set -e  # 重新启用错误退出
         success "远程仓库连接正常，分支 $BRANCH 存在"
@@ -141,6 +164,10 @@ check_git_remote() {
         set -e  # 重新启用错误退出
         warn "无法验证远程分支 $BRANCH，但将继续尝试拉取"
         warn "可能是网络问题或分支不存在，脚本将继续执行"
+        warn "如果后续拉取失败，请检查："
+        warn "  1. 网络连接: ping github.com"
+        warn "  2. GitHub可访问性: curl -I https://github.com"
+        warn "  3. 分支是否存在: git ls-remote --heads origin"
     fi
 }
 
@@ -235,8 +262,16 @@ pull_code() {
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$FETCH_SUCCESS" = false ]; do
         set +e  # 临时禁用错误退出
-        FETCH_OUTPUT=$(git fetch origin "$BRANCH" 2>&1)
+        # 使用明确的远程仓库URL和分支名称
+        FETCH_OUTPUT=$(git fetch "$GITHUB_REPO" "$BRANCH:$BRANCH" 2>&1)
         FETCH_RESULT=$?
+        
+        # 如果直接fetch失败，尝试使用origin
+        if [ $FETCH_RESULT -ne 0 ]; then
+            FETCH_OUTPUT=$(git fetch origin "$BRANCH" 2>&1)
+            FETCH_RESULT=$?
+        fi
+        
         set -e  # 重新启用错误退出
         
         if [ $FETCH_RESULT -eq 0 ]; then
@@ -247,7 +282,7 @@ pull_code() {
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
                 warn "拉取失败，正在重试 ($RETRY_COUNT/$MAX_RETRIES)..."
                 warn "错误信息: $FETCH_OUTPUT"
-                sleep 3
+                sleep 5  # 增加重试间隔
             else
                 error "拉取代码失败，已重试 $MAX_RETRIES 次"
                 error "最后错误: $FETCH_OUTPUT"
@@ -256,7 +291,8 @@ pull_code() {
                 error "  1. 网络连接是否正常: ping github.com"
                 error "  2. GitHub仓库地址是否正确: $GITHUB_REPO"
                 error "  3. 分支名称是否正确: $BRANCH"
-                error "  4. Git配置是否正确: git config --list"
+                error "  4. Git远程配置: git remote -v"
+                error "  5. 手动测试: git ls-remote $GITHUB_REPO"
                 exit 1
             fi
         fi
@@ -269,23 +305,32 @@ pull_code() {
     # 如果本地没有提交历史，直接拉取并创建分支
     if ! git rev-parse HEAD &>/dev/null; then
         info "本地仓库为空，正在从远程克隆代码..."
+        # 尝试多种方式获取代码
         if git pull origin "$BRANCH" --allow-unrelated-histories 2>&1; then
             success "代码克隆成功"
+        elif git checkout -b "$BRANCH" "origin/$BRANCH" 2>&1; then
+            success "代码checkout成功"
+        elif git reset --hard "origin/$BRANCH" 2>&1; then
+            success "代码重置成功"
         else
-            # 如果pull失败，尝试直接checkout
-            if git checkout -b "$BRANCH" "origin/$BRANCH" 2>&1; then
-                success "代码checkout成功"
-            else
-                set -e
-                error "代码合并失败"
-                error "请检查远程分支是否存在: git ls-remote --heads origin $BRANCH"
-                exit 1
-            fi
+            set -e
+            error "代码合并失败"
+            error "请检查远程分支是否存在: git ls-remote --heads origin $BRANCH"
+            error "或尝试手动克隆: git clone -b $BRANCH $GITHUB_REPO ."
+            exit 1
         fi
     else
-        # 正常pull
-        PULL_OUTPUT=$(git pull origin "$BRANCH" 2>&1)
+        # 正常pull，使用rebase策略避免不必要的合并提交
+        PULL_OUTPUT=$(git pull --rebase origin "$BRANCH" 2>&1)
         PULL_RESULT=$?
+        
+        # 如果rebase失败，尝试普通pull
+        if [ $PULL_RESULT -ne 0 ]; then
+            warn "rebase失败，尝试普通pull..."
+            PULL_OUTPUT=$(git pull origin "$BRANCH" 2>&1)
+            PULL_RESULT=$?
+        fi
+        
         set -e  # 重新启用错误退出
         
         if [ $PULL_RESULT -eq 0 ]; then
@@ -300,12 +345,13 @@ pull_code() {
             error "  3. 分支不匹配"
             error ""
             error "当前状态："
-            git status
+            git status 2>&1 || true
             error ""
             error "建议操作："
             error "  1. 查看状态: git status"
             error "  2. 查看差异: git diff"
             error "  3. 手动解决冲突后重试"
+            error "  4. 或强制重置: git reset --hard origin/$BRANCH（会丢失本地更改）"
             exit 1
         fi
     fi
