@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, checkRole } = require('../../middleware/authMiddleware');
 const db = require('../../database/database').db;
+const { dbAll } = require('../../utils/dbHelper');
 const fs = require('fs');
 const path = require('path');
-const { promisify } = require('util');
 const { getClientIP, getUserAgent } = require('../../utils/requestHelper');
 
 // 所有路由都需要认证且仅系统管理员可访问
@@ -372,69 +372,54 @@ router.post('/export', (req, res, next) => {
 
     const exportPath = path.join(exportDir, exportFileName);
 
-    // 使用SQLite的.dump命令导出（通过child_process执行sqlite3命令）
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-
-    // 构建导出命令
-    // 注意：这里需要sqlite3命令行工具，如果容器中没有，可以使用程序化方式
-    const dumpCommand = `sqlite3 "${dbPath}" .dump > "${exportPath}"`;
-
-    // 由于可能没有sqlite3命令行工具，我们使用程序化方式导出
+    // 使用程序化方式导出数据库（不依赖sqlite3命令行工具）
     // 读取所有表并生成SQL
     let sqlDump = '-- SQLite Database Dump\n';
     sqlDump += `-- Generated at: ${new Date().toISOString()}\n`;
     sqlDump += `-- Database: ${dbPath}\n\n`;
     sqlDump += 'BEGIN TRANSACTION;\n\n';
 
-    // 获取所有表
-    db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", [], (err, tables) => {
-      if (err) {
-        return next(err);
-      }
+    // 使用Promise方式处理异步导出，确保顺序执行
+    (async () => {
+      try {
+        // 获取所有表
+        const tables = await dbAll("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
 
-      let tableCount = 0;
-      let totalTables = tables.length;
+        if (tables.length === 0) {
+          sqlDump += '-- No tables found\n';
+          sqlDump += '\nCOMMIT;\n';
+          fs.writeFileSync(exportPath, sqlDump, 'utf8');
+          
+          // 记录操作日志
+          const operationLogModel = require('../../models/operationLogModel');
+          await operationLogModel.create({
+            user_id: req.user.id,
+            module: 'admin_data_management',
+            action: 'export',
+            resource_type: 'database',
+            description: '导出数据库备份',
+            ipAddress: getClientIP(req),
+            userAgent: getUserAgent(req)
+          }).catch(err => {
+            console.error('记录操作日志失败:', err);
+          });
 
-      if (totalTables === 0) {
-        sqlDump += '-- No tables found\n';
-        sqlDump += '\nCOMMIT;\n';
-        fs.writeFileSync(exportPath, sqlDump, 'utf8');
-        
-        // 记录操作日志
-        const operationLogModel = require('../../models/operationLogModel');
-        operationLogModel.create({
-          user_id: req.user.id,
-          module: 'admin_data_management',
-          action: 'export',
-          resource_type: 'database',
-          description: '导出数据库备份',
-          ipAddress: getClientIP(req),
-          userAgent: getUserAgent(req)
-        }).catch(err => {
-          console.error('记录操作日志失败:', err);
-        });
+          return res.json({
+            success: true,
+            message: '数据库导出成功',
+            data: {
+              filename: exportFileName,
+              downloadUrl: `/api/admin/database/download/${exportFileName}`
+            }
+          });
+        }
 
-        return res.json({
-          success: true,
-          message: '数据库导出成功',
-          data: {
-            filename: exportFileName,
-            downloadUrl: `/api/admin/database/download/${exportFileName}`
-          }
-        });
-      }
+        // 顺序处理每个表（确保SQL语句按顺序生成）
+        for (const table of tables) {
+          const tableName = table.name;
 
-      // 为每个表生成SQL
-      tables.forEach((table, index) => {
-        const tableName = table.name;
-
-        // 获取表结构
-        db.all(`PRAGMA table_info(${tableName})`, [], (err, columns) => {
-          if (err) {
-            return next(err);
-          }
+          // 获取表结构
+          const columns = await dbAll(`PRAGMA table_info(${tableName})`);
 
           // 生成CREATE TABLE语句
           const createTableSQL = `CREATE TABLE IF NOT EXISTS ${tableName} (\n`;
@@ -448,58 +433,53 @@ router.post('/export', (req, res, next) => {
           sqlDump += createTableSQL + columnDefs + '\n);\n\n';
 
           // 获取表数据
-          db.all(`SELECT * FROM ${tableName}`, [], (err, rows) => {
-            if (err) {
-              return next(err);
-            }
+          const rows = await dbAll(`SELECT * FROM ${tableName}`);
 
-            // 为每行数据生成INSERT语句
-            rows.forEach(row => {
-              const columns = Object.keys(row);
-              const values = columns.map(col => {
-                const value = row[col];
-                if (value === null) return 'NULL';
-                if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
-                return value;
-              });
-              sqlDump += `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+          // 为每行数据生成INSERT语句
+          rows.forEach(row => {
+            const rowColumns = Object.keys(row);
+            const values = rowColumns.map(col => {
+              const value = row[col];
+              if (value === null) return 'NULL';
+              if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
+              return value;
             });
-
-            tableCount++;
-            if (tableCount === totalTables) {
-              sqlDump += '\nCOMMIT;\n';
-
-              // 写入文件
-              fs.writeFileSync(exportPath, sqlDump, 'utf8');
-
-              // 记录操作日志
-              const operationLogModel = require('../../models/operationLogModel');
-              operationLogModel.create({
-                user_id: req.user.id,
-                module: 'admin_data_management',
-                action: 'export',
-                resource_type: 'database',
-                description: '导出数据库备份',
-                ipAddress: getClientIP(req),
-                userAgent: getUserAgent(req)
-              }).catch(err => {
-                console.error('记录操作日志失败:', err);
-              });
-
-              res.json({
-                success: true,
-                message: '数据库导出成功',
-                data: {
-                  filename: exportFileName,
-                  downloadUrl: `/api/admin/database/download/${exportFileName}`,
-                  size: fs.statSync(exportPath).size
-                }
-              });
-            }
+            sqlDump += `INSERT INTO ${tableName} (${rowColumns.join(', ')}) VALUES (${values.join(', ')});\n`;
           });
+        }
+
+        sqlDump += '\nCOMMIT;\n';
+
+        // 写入文件
+        fs.writeFileSync(exportPath, sqlDump, 'utf8');
+
+        // 记录操作日志
+        const operationLogModel = require('../../models/operationLogModel');
+        await operationLogModel.create({
+          user_id: req.user.id,
+          module: 'admin_data_management',
+          action: 'export',
+          resource_type: 'database',
+          description: '导出数据库备份',
+          ipAddress: getClientIP(req),
+          userAgent: getUserAgent(req)
+        }).catch(err => {
+          console.error('记录操作日志失败:', err);
         });
-      });
-    });
+
+        res.json({
+          success: true,
+          message: '数据库导出成功',
+          data: {
+            filename: exportFileName,
+            downloadUrl: `/api/admin/database/download/${exportFileName}`,
+            size: fs.statSync(exportPath).size
+          }
+        });
+      } catch (error) {
+        next(error);
+      }
+    })();
   } catch (error) {
     next(error);
   }
