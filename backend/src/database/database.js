@@ -1,14 +1,28 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, 'mms.db');
+// 优先使用环境变量DB_PATH，否则使用默认路径
+// 这样可以支持Docker Volume挂载
+const DEFAULT_DB_PATH = path.join(__dirname, 'mms.db');
+const DB_PATH = process.env.DB_PATH || DEFAULT_DB_PATH;
+
+// 确保数据库目录存在
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log(`创建数据库目录: ${dbDir}`);
+}
+
+console.log(`数据库路径: ${DB_PATH}`);
 
 // 创建数据库连接
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error('数据库连接失败:', err.message);
+    console.error('数据库路径:', DB_PATH);
   } else {
-    console.log('已连接到SQLite数据库');
+    console.log(`已连接到SQLite数据库: ${DB_PATH}`);
   }
 });
 
