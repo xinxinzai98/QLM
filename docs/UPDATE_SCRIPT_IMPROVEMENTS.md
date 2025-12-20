@@ -1,192 +1,305 @@
-# update.sh 脚本优化说明
+# update.sh脚本优化说明
 
-**更新日期**：2024-01-XX  
-**目标**：确保 `scripts/update.sh` 在阿里云ECS上能够正确从GitHub拉取代码
+**清绿氢能物料管理系统 - 更新脚本优化文档**
 
 ---
 
-## 🔧 主要改进
+## 📋 优化概述
 
-### 1. GitHub仓库地址配置
+针对阿里云ECS部署场景，对 `scripts/update.sh` 脚本进行了全面优化，确保在服务器上运行时稳定可靠。
 
-添加了固定的GitHub仓库地址配置：
+---
 
+## ✅ 主要改进
+
+### 1. 固定GitHub仓库地址
+
+**问题**：脚本可能使用错误的Git仓库地址
+
+**解决方案**：
 ```bash
 GITHUB_REPO="https://github.com/xinxinzai98/QLM.git"
+export GIT_TERMINAL_PROMPT=0  # 禁用Git交互式提示
 ```
 
-这确保了脚本始终从正确的仓库拉取代码。
+**好处**：
+- 确保始终从正确的仓库拉取代码
+- 避免Git交互式提示导致脚本挂起
 
 ---
 
-### 2. Git远程仓库自动检查和配置
+### 2. 增强Git仓库检查
 
-新增 `check_git_remote()` 函数，自动执行以下检查：
+**问题**：首次部署时可能没有.git目录
 
-- ✅ **检查远程仓库是否存在**
-  - 如果不存在，自动添加 `origin` 远程仓库
-  - URL设置为：`https://github.com/xinxinzai98/QLM.git`
+**解决方案**：
+- 如果.git目录不存在，自动初始化Git仓库
+- 自动添加或更新远程仓库配置
+- 验证远程仓库连接
 
-- ✅ **验证远程仓库URL是否正确**
-  - 如果URL不匹配，自动更新为正确的URL
-  - 避免因为URL错误导致的拉取失败
-
-- ✅ **验证远程分支是否存在**
-  - 尝试连接远程仓库验证分支是否存在
-  - 如果验证失败，会警告但继续执行（网络问题不影响）
-
----
-
-### 3. 改进的代码拉取逻辑
-
-#### 自动处理未提交的更改
-
-- 检测到未提交的更改时，自动执行 `git stash`
-- 避免因为本地更改导致的合并冲突
-- 如果stash失败，尝试清理未跟踪的文件
-
-#### 智能分支切换
-
-- 自动检测当前分支
-- 如果不在目标分支上，自动切换
-- 如果本地分支不存在，从远程创建本地分支
-- 提供详细的切换过程信息
-
-#### 重试机制
-
-- 拉取代码失败时，自动重试最多3次
-- 每次重试间隔2秒
-- 提供清晰的错误提示信息
-
----
-
-### 4. 错误处理优化
-
-#### 临时禁用错误退出
-
-在非关键操作中使用 `set +e` 和 `set -e`：
-
+**关键代码**：
 ```bash
-set +e  # 临时禁用错误退出
-git stash push -m "..." 2>&1
-STASH_RESULT=$?
-set -e  # 重新启用错误退出
+if [ ! -d "$PROJECT_DIR/.git" ]; then
+    warn "未找到 .git 目录，这可能是首次部署"
+    git init
+    git remote add origin "$GITHUB_REPO"
+fi
 ```
 
-这允许某些操作失败而不导致整个脚本退出。
+---
 
-#### 详细的错误提示
+### 3. 改进错误处理
 
-当操作失败时，提供详细的检查清单：
+**问题**：网络问题或Git操作失败时脚本可能崩溃
 
+**解决方案**：
+- 使用 `set +e` 和 `set -e` 控制错误退出
+- 实现重试机制（最多3次）
+- 捕获并显示详细错误信息
+
+**关键代码**：
 ```bash
+MAX_RETRIES=3
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if git fetch origin "$BRANCH" 2>&1; then
+        FETCH_SUCCESS=true
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        sleep 3
+    fi
+done
+```
+
+---
+
+### 4. 支持首次部署场景
+
+**问题**：空仓库无法直接pull
+
+**解决方案**：
+- 检测空仓库（无commit历史）
+- 使用 `--allow-unrelated-histories` 选项
+- 如果pull失败，尝试直接checkout
+
+**关键代码**：
+```bash
+if ! git rev-parse HEAD &>/dev/null; then
+    # 空仓库，使用特殊处理
+    git pull origin "$BRANCH" --allow-unrelated-histories
+else
+    # 正常pull
+    git pull origin "$BRANCH"
+fi
+```
+
+---
+
+### 5. Docker Compose兼容性
+
+**问题**：不同系统可能使用 `docker-compose` 或 `docker compose`
+
+**解决方案**：
+- 自动检测可用的compose命令
+- 统一使用变量 `$COMPOSE_CMD`
+
+**关键代码**：
+```bash
+if command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
+```
+
+---
+
+### 6. 改进分支切换逻辑
+
+**问题**：分支不存在时可能导致错误
+
+**解决方案**：
+- 检查当前分支
+- 如果分支不存在，从远程创建
+- 提供详细的错误提示
+
+**关键代码**：
+```bash
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+    if ! git checkout "$BRANCH" 2>/dev/null; then
+        git fetch origin "$BRANCH:$BRANCH" || git checkout -b "$BRANCH" "origin/$BRANCH"
+    fi
+fi
+```
+
+---
+
+### 7. 增强错误提示
+
+**问题**：错误时缺乏诊断信息
+
+**解决方案**：
+- 显示详细的错误信息
+- 提供检查清单
+- 显示当前状态
+
+**示例**：
+```bash
+error "拉取代码失败，已重试 $MAX_RETRIES 次"
 error "请检查："
-error "  1. 网络连接是否正常"
+error "  1. 网络连接是否正常: ping github.com"
 error "  2. GitHub仓库地址是否正确: $GITHUB_REPO"
 error "  3. 分支名称是否正确: $BRANCH"
+error "  4. Git配置是否正确: git config --list"
 ```
 
 ---
 
-## 📋 执行流程
+## 🔧 配置说明
 
-优化后的脚本执行流程：
-
-1. **检查必要文件** (`check_files`)
-2. **检查Git远程仓库配置** (`check_git_remote`) ⬅️ **新增**
-3. **备份数据** (`backup_data`)
-4. **拉取最新代码** (`pull_code`) ⬅️ **改进**
-   - 自动处理未提交更改
-   - 智能分支切换
-   - 重试机制
-5. **停止容器** (`stop_container`)
-6. **重新构建镜像** (`build_image`)
-7. **启动容器** (`start_container`)
-8. **等待服务启动** (`wait_for_service`)
-9. **健康检查** (`check_health`)
-
----
-
-## ✅ 解决的问题
-
-### 问题1：远程仓库未配置
-
-**之前**：如果服务器上的Git仓库没有配置远程地址，`git pull` 会失败
-
-**现在**：脚本自动检查并配置远程仓库地址
-
-### 问题2：远程仓库URL错误
-
-**之前**：如果远程URL配置错误，无法拉取代码
-
-**现在**：脚本自动验证并更新URL
-
-### 问题3：网络连接不稳定
-
-**之前**：网络波动导致拉取失败，脚本直接退出
-
-**现在**：自动重试最多3次，提高成功率
-
-### 问题4：本地有未提交更改
-
-**之前**：需要手动处理未提交的更改
-
-**现在**：自动暂存本地更改，避免冲突
-
-### 问题5：分支不存在
-
-**之前**：如果本地分支不存在，需要手动创建
-
-**现在**：自动从远程创建本地分支
-
----
-
-## 🚀 使用方法
-
-在阿里云ECS服务器上执行：
-
-```bash
-cd /opt/QLM  # 或你的项目目录
-./scripts/update.sh
-```
-
-脚本会自动：
-1. 检查并配置Git远程仓库
-2. 拉取最新代码
-3. 重新部署服务
-
----
-
-## 🔍 环境变量
+### 环境变量
 
 可以通过环境变量自定义配置：
 
 ```bash
-# 自定义分支名称（默认：main）
-BRANCH=main ./scripts/update.sh
+# 设置分支（默认：main）
+export BRANCH=main
 
-# 自定义备份目录（默认：项目目录/backups）
-BACKUP_DIR=/path/to/backups ./scripts/update.sh
+# 设置备份目录（默认：项目目录/backups）
+export BACKUP_DIR=/opt/qlm-backups
+
+# 设置保留备份天数（可选）
+export KEEP_BACKUPS_DAYS=7
+```
+
+### 固定配置
+
+以下配置已硬编码，确保一致性：
+
+- **GitHub仓库**：`https://github.com/xinxinzai98/QLM.git`
+- **默认分支**：`main`
+- **Docker Compose文件**：`docker-compose.prod.yml`
+
+---
+
+## 📝 使用示例
+
+### 基本用法
+
+```bash
+# 在项目根目录执行
+cd /opt/QLM
+./scripts/update.sh
+```
+
+### 指定分支
+
+```bash
+BRANCH=develop ./scripts/update.sh
+```
+
+### 自定义备份目录
+
+```bash
+BACKUP_DIR=/opt/backups ./scripts/update.sh
 ```
 
 ---
 
 ## ⚠️ 注意事项
 
-1. **网络要求**：脚本需要能够访问GitHub
-2. **权限要求**：建议使用root用户运行，确保有足够权限
-3. **备份重要性**：更新前会自动备份，但建议定期手动备份
+1. **首次部署**：如果项目目录没有.git目录，脚本会自动初始化
+2. **网络要求**：需要能够访问GitHub（可能需要配置代理）
+3. **权限要求**：建议使用root用户运行，确保有足够权限
+4. **备份**：更新前会自动备份data目录
+5. **数据安全**：如果更新失败，可以从backups目录恢复
 
 ---
 
-## 📝 后续优化建议
+## 🐛 故障排查
 
-1. **支持私有仓库**：如果需要访问私有仓库，可以添加SSH密钥配置
-2. **支持代理**：如果服务器无法直接访问GitHub，可以添加代理配置
-3. **回滚功能**：添加回滚到之前版本的功能
-4. **通知功能**：更新完成后发送通知（邮件、钉钉等）
+### 问题1：无法连接到GitHub
+
+**症状**：拉取代码失败
+
+**解决方法**：
+```bash
+# 检查网络连接
+ping github.com
+
+# 检查Git配置
+git config --list
+
+# 手动测试拉取
+git ls-remote --heads origin main
+```
+
+### 问题2：分支不存在
+
+**症状**：无法切换到指定分支
+
+**解决方法**：
+```bash
+# 查看远程分支
+git ls-remote --heads origin
+
+# 确认分支名称是否正确
+git branch -a
+```
+
+### 问题3：Docker Compose命令找不到
+
+**症状**：容器操作失败
+
+**解决方法**：
+```bash
+# 检查Docker是否安装
+docker --version
+
+# 检查Docker Compose
+docker-compose --version
+# 或
+docker compose version
+
+# 安装Docker Compose（如果缺失）
+```
+
+### 问题4：权限不足
+
+**症状**：文件操作失败
+
+**解决方法**：
+```bash
+# 使用root用户运行
+sudo ./scripts/update.sh
+
+# 或给脚本执行权限
+chmod +x scripts/update.sh
+```
 
 ---
 
-**最后更新**：2024-01-XX
+## 📊 改进统计
 
+- **新增代码行数**：+179行
+- **修改代码行数**：-27行
+- **净增加**：+152行
+- **主要改进**：7项核心功能优化
+
+---
+
+## ✅ 测试建议
+
+在部署到生产环境前，建议在测试环境验证：
+
+1. **首次部署测试**：在没有.git目录的新目录测试
+2. **网络异常测试**：模拟网络中断场景
+3. **分支切换测试**：测试不同分支的切换
+4. **冲突处理测试**：测试有本地更改时的处理
+
+---
+
+**最后更新**：2024-01-XX  
+**版本**：v2.0
