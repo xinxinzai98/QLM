@@ -42,6 +42,9 @@ COMPOSE_FILE="docker-compose.prod.yml"
 BRANCH="${BRANCH:-main}"
 GITHUB_REPO="https://github.com/xinxinzai98/QLM.git"
 
+# 确保使用正确的Git仓库地址（固定不变）
+export GIT_TERMINAL_PROMPT=0  # 禁用Git交互式提示
+
 # 创建备份目录
 mkdir -p "$BACKUP_DIR"
 
@@ -58,12 +61,32 @@ check_files() {
     
     if [ ! -f "$PROJECT_DIR/$COMPOSE_FILE" ]; then
         error "未找到 $COMPOSE_FILE 文件"
+        error "当前目录: $PROJECT_DIR"
         exit 1
     fi
     
+    # 如果.git目录不存在，尝试初始化Git仓库
     if [ ! -d "$PROJECT_DIR/.git" ]; then
-        error "未找到 .git 目录，请确保在项目根目录运行"
-        exit 1
+        warn "未找到 .git 目录，这可能是首次部署"
+        warn "正在初始化Git仓库..."
+        cd "$PROJECT_DIR"
+        
+        # 初始化Git仓库
+        if git init 2>&1; then
+            success "Git仓库初始化成功"
+        else
+            error "Git仓库初始化失败"
+            exit 1
+        fi
+        
+        # 添加远程仓库
+        if git remote add origin "$GITHUB_REPO" 2>&1; then
+            success "已添加远程仓库: $GITHUB_REPO"
+        else
+            # 如果已经存在，更新URL
+            git remote set-url origin "$GITHUB_REPO" 2>&1
+            success "已更新远程仓库URL: $GITHUB_REPO"
+        fi
     fi
     
     success "文件检查通过"
@@ -75,20 +98,34 @@ check_git_remote() {
     
     cd "$PROJECT_DIR"
     
+    # 确保Git配置正确
+    git config --global user.name "QLM Updater" 2>/dev/null || true
+    git config --global user.email "updater@qlm.local" 2>/dev/null || true
+    git config --global init.defaultBranch main 2>/dev/null || true
+    git config --global core.autocrlf input 2>/dev/null || true
+    
     # 检查是否有远程仓库配置
     if ! git remote | grep -q "^origin$"; then
         warn "未找到origin远程仓库，正在配置..."
-        git remote add origin "$GITHUB_REPO"
-        success "已添加远程仓库: $GITHUB_REPO"
+        if git remote add origin "$GITHUB_REPO" 2>&1; then
+            success "已添加远程仓库: $GITHUB_REPO"
+        else
+            error "添加远程仓库失败"
+            exit 1
+        fi
     else
         # 检查远程仓库URL是否正确
         CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
-        if [ "$CURRENT_URL" != "$GITHUB_REPO" ]; then
+        if [ -z "$CURRENT_URL" ] || [ "$CURRENT_URL" != "$GITHUB_REPO" ]; then
             warn "远程仓库URL不匹配，正在更新..."
-            warn "当前URL: $CURRENT_URL"
+            warn "当前URL: ${CURRENT_URL:-未配置}"
             warn "目标URL: $GITHUB_REPO"
-            git remote set-url origin "$GITHUB_REPO"
-            success "已更新远程仓库URL: $GITHUB_REPO"
+            if git remote set-url origin "$GITHUB_REPO" 2>&1; then
+                success "已更新远程仓库URL: $GITHUB_REPO"
+            else
+                error "更新远程仓库URL失败"
+                exit 1
+            fi
         else
             info "远程仓库配置正确: $GITHUB_REPO"
         fi
@@ -96,9 +133,12 @@ check_git_remote() {
     
     # 验证远程仓库连接（可选，如果网络有问题会失败）
     info "验证远程仓库连接..."
+    set +e  # 临时禁用错误退出
     if git ls-remote --heads origin "$BRANCH" &>/dev/null; then
+        set -e  # 重新启用错误退出
         success "远程仓库连接正常，分支 $BRANCH 存在"
     else
+        set -e  # 重新启用错误退出
         warn "无法验证远程分支 $BRANCH，但将继续尝试拉取"
         warn "可能是网络问题或分支不存在，脚本将继续执行"
     fi
@@ -188,26 +228,35 @@ pull_code() {
     fi
     
     # 拉取最新代码（使用重试机制）
-    info "正在从远程仓库拉取代码..."
+    info "正在从远程仓库拉取代码（仓库: $GITHUB_REPO，分支: $BRANCH）..."
     MAX_RETRIES=3
     RETRY_COUNT=0
     FETCH_SUCCESS=false
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$FETCH_SUCCESS" = false ]; do
-        if git fetch origin "$BRANCH" 2>&1; then
+        set +e  # 临时禁用错误退出
+        FETCH_OUTPUT=$(git fetch origin "$BRANCH" 2>&1)
+        FETCH_RESULT=$?
+        set -e  # 重新启用错误退出
+        
+        if [ $FETCH_RESULT -eq 0 ]; then
             FETCH_SUCCESS=true
             success "代码拉取成功"
         else
             RETRY_COUNT=$((RETRY_COUNT + 1))
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
                 warn "拉取失败，正在重试 ($RETRY_COUNT/$MAX_RETRIES)..."
-                sleep 2
+                warn "错误信息: $FETCH_OUTPUT"
+                sleep 3
             else
                 error "拉取代码失败，已重试 $MAX_RETRIES 次"
+                error "最后错误: $FETCH_OUTPUT"
+                error ""
                 error "请检查："
-                error "  1. 网络连接是否正常"
+                error "  1. 网络连接是否正常: ping github.com"
                 error "  2. GitHub仓库地址是否正确: $GITHUB_REPO"
                 error "  3. 分支名称是否正确: $BRANCH"
+                error "  4. Git配置是否正确: git config --list"
                 exit 1
             fi
         fi
@@ -215,13 +264,50 @@ pull_code() {
     
     # 合并远程更改
     info "正在合并远程更改..."
-    if git pull origin "$BRANCH" 2>&1; then
-        success "代码合并成功"
+    set +e  # 临时禁用错误退出
+    
+    # 如果本地没有提交历史，直接拉取并创建分支
+    if ! git rev-parse HEAD &>/dev/null; then
+        info "本地仓库为空，正在从远程克隆代码..."
+        if git pull origin "$BRANCH" --allow-unrelated-histories 2>&1; then
+            success "代码克隆成功"
+        else
+            # 如果pull失败，尝试直接checkout
+            if git checkout -b "$BRANCH" "origin/$BRANCH" 2>&1; then
+                success "代码checkout成功"
+            else
+                set -e
+                error "代码合并失败"
+                error "请检查远程分支是否存在: git ls-remote --heads origin $BRANCH"
+                exit 1
+            fi
+        fi
     else
-        error "代码合并失败，可能存在冲突"
-        error "请手动解决冲突后重试"
-        git status
-        exit 1
+        # 正常pull
+        PULL_OUTPUT=$(git pull origin "$BRANCH" 2>&1)
+        PULL_RESULT=$?
+        set -e  # 重新启用错误退出
+        
+        if [ $PULL_RESULT -eq 0 ]; then
+            success "代码合并成功"
+        else
+            error "代码合并失败"
+            error "错误信息: $PULL_OUTPUT"
+            error ""
+            error "可能存在以下问题："
+            error "  1. 本地有未提交的更改（已自动暂存）"
+            error "  2. 存在合并冲突"
+            error "  3. 分支不匹配"
+            error ""
+            error "当前状态："
+            git status
+            error ""
+            error "建议操作："
+            error "  1. 查看状态: git status"
+            error "  2. 查看差异: git diff"
+            error "  3. 手动解决冲突后重试"
+            exit 1
+        fi
     fi
     
     # 获取更新后的commit
@@ -243,9 +329,37 @@ stop_container() {
     info "停止容器..."
     
     cd "$PROJECT_DIR"
-    docker-compose -f "$COMPOSE_FILE" stop
     
-    success "容器已停止"
+    # 检查docker-compose是否可用
+    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+        error "未找到docker-compose命令"
+        error "请先安装Docker Compose"
+        exit 1
+    fi
+    
+    # 尝试使用docker-compose或docker compose
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    
+    # 停止容器（如果存在）
+    set +e  # 临时禁用错误退出
+    $COMPOSE_CMD -f "$COMPOSE_FILE" stop 2>&1
+    STOP_RESULT=$?
+    set -e  # 重新启用错误退出
+    
+    if [ $STOP_RESULT -eq 0 ]; then
+        success "容器已停止"
+    else
+        warn "停止容器时出现问题（可能容器未运行）"
+        # 检查容器是否真的在运行
+        if docker ps | grep -q mms-app; then
+            error "容器仍在运行，强制停止..."
+            docker stop mms-app 2>&1 || true
+        fi
+    fi
 }
 
 # 重新构建镜像
@@ -253,9 +367,25 @@ build_image() {
     info "重新构建Docker镜像（这可能需要5-10分钟）..."
     
     cd "$PROJECT_DIR"
-    docker-compose -f "$COMPOSE_FILE" build
     
-    success "镜像构建完成"
+    # 确定使用哪个compose命令
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    
+    # 构建镜像
+    if $COMPOSE_CMD -f "$COMPOSE_FILE" build 2>&1; then
+        success "镜像构建完成"
+    else
+        error "镜像构建失败"
+        error "请检查："
+        error "  1. Docker是否正常运行: docker ps"
+        error "  2. 磁盘空间是否充足: df -h"
+        error "  3. Dockerfile是否正确"
+        exit 1
+    fi
 }
 
 # 启动容器
@@ -263,9 +393,22 @@ start_container() {
     info "启动容器..."
     
     cd "$PROJECT_DIR"
-    docker-compose -f "$COMPOSE_FILE" up -d
     
-    success "容器已启动"
+    # 确定使用哪个compose命令
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    
+    # 启动容器
+    if $COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1; then
+        success "容器已启动"
+    else
+        error "容器启动失败"
+        error "请查看日志: $COMPOSE_CMD -f $COMPOSE_FILE logs"
+        exit 1
+    fi
 }
 
 # 等待服务启动
@@ -309,9 +452,18 @@ show_info() {
     info "访问地址: http://$(hostname -I | awk '{print $1}'):3000"
     echo ""
     info "常用命令："
-    echo "  查看日志: docker-compose -f $COMPOSE_FILE logs -f"
-    echo "  查看状态: docker-compose -f $COMPOSE_FILE ps"
-    echo "  重启服务: docker-compose -f $COMPOSE_FILE restart"
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    echo "  查看日志: $COMPOSE_CMD -f $COMPOSE_FILE logs -f"
+    echo "  查看状态: $COMPOSE_CMD -f $COMPOSE_FILE ps"
+    echo "  重启服务: $COMPOSE_CMD -f $COMPOSE_FILE restart"
+    echo ""
+    info "Git仓库信息："
+    echo "  仓库地址: $GITHUB_REPO"
+    echo "  当前分支: $BRANCH"
     echo ""
 }
 
