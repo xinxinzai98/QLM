@@ -83,6 +83,16 @@ const routes = [
         }
       },
       {
+        path: 'admin/data-management',
+        name: 'DataManagement',
+        component: () => import('@/views/DataManagement.vue'),
+        meta: { 
+          title: '数据管理', 
+          requiresAuth: true,
+          roles: ['system_admin']
+        }
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),

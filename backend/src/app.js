@@ -16,6 +16,7 @@ const operationLogRoutes = require('./api/routes/operationLogRoutes');
 const notificationRoutes = require('./api/routes/notificationRoutes');
 const searchRoutes = require('./api/routes/searchRoutes');
 const exportRoutes = require('./api/routes/exportRoutes');
+const adminDataRoutes = require('./api/routes/adminDataRoutes');
 
 const app = express();
 
@@ -78,6 +79,13 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+// 静态文件服务（用于数据库导出文件下载）
+const exportsDir = path.join(__dirname, '../../data/exports');
+if (!fs.existsSync(exportsDir)) {
+    fs.mkdirSync(exportsDir, { recursive: true });
+}
+app.use('/api/admin/database/download', express.static(exportsDir));
+
 // 生产环境服务前端静态资源
 if (process.env.NODE_ENV === 'production') {
     const publicDir = path.join(__dirname, '../public');
@@ -104,6 +112,7 @@ app.use('/api/operation-logs', operationLogRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/admin/database', adminDataRoutes);
 
 // 健康检查端点
 app.get('/api/health', (req, res) => {
