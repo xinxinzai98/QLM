@@ -22,7 +22,8 @@ services:
     environment:
       # ⚠️ 必须修改：设置为强随机字符串（至少32个字符）
       # 生成命令：openssl rand -hex 32
-      - JWT_SECRET=CHANGE_ME_TO_STRONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+      # 或：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - JWT_SECRET=<your-strong-random-secret-at-least-32-characters>
       
       # JWT过期时间（可选，默认7d）
       - JWT_EXPIRES_IN=7d

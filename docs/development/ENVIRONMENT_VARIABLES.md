@@ -87,8 +87,10 @@ node generate-jwt-secret.js
 
 ```env
 # JWT配置
-JWT_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
-JWT_REFRESH_SECRET=refresh_secret_key_here
+# ⚠️ 重要：必须使用强随机生成的密钥（至少32个字符）
+# 生成命令：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=<your-strong-random-secret-at-least-32-characters>
+JWT_REFRESH_SECRET=<your-refresh-secret-key>  # 可选
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=30d
 

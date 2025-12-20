@@ -395,15 +395,22 @@ ls -la
 # 确保在项目根目录
 cd /opt/QLM
 
+# ⚠️ 重要：先生成强随机JWT密钥
+# 方法1：使用OpenSSL（推荐）
+JWT_SECRET=$(openssl rand -hex 32)
+
+# 方法2：如果没有OpenSSL，使用Node.js
+# JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+
 # 创建.env文件
 cat > .env <<EOF
 # 生产环境配置
 NODE_ENV=production
 PORT=3000
 
-# ⚠️ 重要：JWT密钥必须修改为强随机字符串（至少32个字符）
-# 下面这行是示例，请修改为你自己的随机字符串！
-JWT_SECRET=your_super_secret_jwt_key_change_this_to_random_string_at_least_32_chars_long_123456789
+# ⚠️ 安全警告：必须使用强随机生成的密钥（至少32个字符）
+# 已自动生成随机密钥，请妥善保管！
+JWT_SECRET=${JWT_SECRET}
 
 # JWT过期时间（7天）
 JWT_EXPIRES_IN=7d
@@ -411,6 +418,9 @@ JWT_EXPIRES_IN=7d
 # 数据库路径
 DB_PATH=./database/mms.db
 EOF
+
+echo "⚠️  重要：JWT_SECRET已生成，请妥善保管！"
+echo "⚠️  密钥值：${JWT_SECRET:0:20}..."
 ```
 
 ### 5.2 生成强随机JWT密钥（推荐）
@@ -1039,11 +1049,13 @@ kill -9 <PID>
 
 现在你可以：
 - ✅ 通过浏览器访问系统
-- ✅ 使用默认账号登录（admin/admin123）
+- ✅ 使用默认账号登录（admin/admin123）⚠️ **仅开发环境**
 - ✅ 开始使用系统管理物料
 
-**重要提醒**：
-- 🔒 首次登录后，请立即修改默认密码！
+**⚠️ 重要安全提醒**：
+- 🔒 **生产环境**：首次登录后，请立即修改默认密码！
+- 🔒 **生产环境**：默认密码 `admin123` 存在安全风险，必须修改！
+- 💾 定期备份 `data/` 目录
 - 💾 定期备份 `data/` 目录
 - 📊 定期查看日志，确保系统正常运行
 - 🔄 定期更新代码和依赖

@@ -102,13 +102,21 @@ systemctl restart docker
 你需要创建一个配置文件。请直接复制下面整段代码，粘贴到终端里按回车：
 
 ```bash
+# ⚠️ 重要：必须先生成强随机密钥
+# 生成命令：
+JWT_SECRET=$(openssl rand -hex 32)
+
+# 如果没有openssl，使用Node.js：
+# JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+
 cat > .env <<EOF
 # 这里是生产环境配置
 NODE_ENV=production
 PORT=3000
 
-# !!! 注意：为了安全，下面这行乱码建议随便改几个字母，变得不一样就行 !!!
-JWT_SECRET=super_long_secret_key_change_this_to_something_random_123456
+# ⚠️ 安全警告：必须使用强随机生成的密钥（至少32个字符）
+# 不要使用示例密钥或弱密钥！
+JWT_SECRET=${JWT_SECRET}
 EOF
 ```
 
