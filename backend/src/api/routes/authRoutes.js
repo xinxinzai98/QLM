@@ -218,8 +218,28 @@ router.post('/refresh', async (req, res, next) => {
     }
 
     // 验证Refresh Token
-    const refreshTokenSecret = process.env.JWT_REFRESH_SECRET ||
-      (process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production') + '_refresh';
+    // 获取JWT密钥（与中间件保持一致）
+    const getJWTSecretForRefresh = () => {
+      const secret = process.env.JWT_SECRET;
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      if (isProduction && !secret) {
+        throw new Error('FATAL: JWT_SECRET must be set in production environment');
+      }
+
+      if (secret && secret.length < 32) {
+        throw new Error('FATAL: JWT_SECRET must be at least 32 characters long');
+      }
+
+      if (!isProduction && !secret) {
+        const crypto = require('crypto');
+        return crypto.randomBytes(32).toString('hex');
+      }
+
+      return secret;
+    };
+
+    const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || getJWTSecretForRefresh() + '_refresh';
 
     jwt.verify(refreshToken, refreshTokenSecret, async (err, decoded) => {
       if (err) {
@@ -271,14 +291,33 @@ router.post('/refresh', async (req, res, next) => {
           // 生成新的Access Token
           const getJWTSecret = () => {
             const secret = process.env.JWT_SECRET;
-            const defaultSecret = 'your-super-secret-jwt-key-change-in-production';
             const isProduction = process.env.NODE_ENV === 'production';
 
-            if (isProduction && (!secret || secret === defaultSecret)) {
-              throw new Error('JWT_SECRET must be set in production environment');
+            // 生产环境强制要求配置密钥
+            if (isProduction && !secret) {
+              throw new Error(
+                'FATAL: JWT_SECRET must be set in production environment. ' +
+                'Please set a strong secret key (minimum 32 characters) in environment variables.'
+              );
             }
 
-            return secret || defaultSecret;
+            // 验证密钥强度
+            if (secret && secret.length < 32) {
+              throw new Error(
+                'FATAL: JWT_SECRET must be at least 32 characters long. ' +
+                'Current length: ' + secret.length
+              );
+            }
+
+            // 开发环境：如果没有配置密钥，使用临时生成的密钥
+            if (!isProduction && !secret) {
+              const crypto = require('crypto');
+              const tempSecret = crypto.randomBytes(32).toString('hex');
+              console.warn('⚠️  WARNING: JWT_SECRET not set. Using temporary key for development.');
+              return tempSecret;
+            }
+
+            return secret;
           };
 
           const newAccessToken = jwt.sign(

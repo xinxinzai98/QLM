@@ -10,16 +10,17 @@ const validateEnvironment = () => {
   // 生产环境强制要求JWT_SECRET
   if (isProduction) {
     const jwtSecret = process.env.JWT_SECRET;
-    const defaultSecret = 'your-super-secret-jwt-key-change-in-production';
 
-    if (!jwtSecret || jwtSecret === defaultSecret) {
+    if (!jwtSecret) {
       errors.push(
         'FATAL: JWT_SECRET must be set in production environment. ' +
         'Please set a strong secret key (minimum 32 characters) in environment variables.'
       );
     } else if (jwtSecret.length < 32) {
       errors.push(
-        'WARNING: JWT_SECRET is too short (minimum 32 characters recommended for production).'
+        'FATAL: JWT_SECRET must be at least 32 characters long. ' +
+        `Current length: ${jwtSecret.length}. ` +
+        'Please set a strong secret key (minimum 32 characters) in environment variables.'
       );
     }
   }
