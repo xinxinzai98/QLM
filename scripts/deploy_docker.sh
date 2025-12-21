@@ -166,8 +166,10 @@ create_env_file() {
         elif command -v node &> /dev/null; then
             JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
         else
-            warn "无法生成随机密钥，使用默认密钥（生产环境请手动修改）"
-            JWT_SECRET="your_super_secret_jwt_key_change_this_to_random_string_at_least_32_chars_long_123456789"
+            error "无法生成随机密钥，且未找到Node.js或OpenSSL"
+            error "请手动设置JWT_SECRET环境变量"
+            error "生成命令：openssl rand -hex 32 或 node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+            exit 1
         fi
         
         cat > .env <<EOF

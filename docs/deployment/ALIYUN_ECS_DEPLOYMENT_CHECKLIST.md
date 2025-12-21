@@ -97,7 +97,9 @@ chmod +x /usr/local/bin/docker-compose
 ```env
 NODE_ENV=production
 PORT=3000
-JWT_SECRET=your-strong-random-secret-at-least-32-characters
+# ⚠️ 必须使用强随机生成的密钥（至少32个字符）
+# 生成命令：openssl rand -hex 32
+JWT_SECRET=<your-strong-random-secret-at-least-32-characters>
 JWT_EXPIRES_IN=7d
 DB_PATH=./database/mms.db
 ```

@@ -16,8 +16,10 @@ node generate-jwt-secret.js
 2. 设置 `JWT_SECRET` 变量（至少32字符）
 
 示例：
-```
-JWT_SECRET=your-strong-secret-key-at-least-32-characters-long
+```env
+# ⚠️ 必须使用强随机生成的密钥（至少32个字符）
+# 生成命令：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=<your-strong-random-secret-at-least-32-characters>
 ```
 
 ## 详细文档

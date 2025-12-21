@@ -3,24 +3,35 @@ const jwt = require('jsonwebtoken');
 // 获取JWT密钥，强制要求环境变量配置
 const getJWTSecret = () => {
   const secret = process.env.JWT_SECRET;
-  const defaultSecret = 'your-super-secret-jwt-key-change-in-production';
   const isProduction = process.env.NODE_ENV === 'production';
   
   // 生产环境强制要求配置密钥
-  if (isProduction && (!secret || secret === defaultSecret)) {
+  if (isProduction && !secret) {
     throw new Error(
       'FATAL: JWT_SECRET must be set in production environment. ' +
       'Please set a strong secret key (minimum 32 characters) in environment variables.'
     );
   }
   
-  // 开发环境允许使用默认值，但给出警告
-  if (!isProduction && (!secret || secret === defaultSecret)) {
-    console.warn('⚠️  WARNING: Using default JWT_SECRET. This is insecure for production!');
-    console.warn('⚠️  Please set JWT_SECRET environment variable.');
+  // 验证密钥强度
+  if (secret && secret.length < 32) {
+    throw new Error(
+      'FATAL: JWT_SECRET must be at least 32 characters long. ' +
+      'Current length: ' + secret.length
+    );
   }
   
-  return secret || defaultSecret;
+  // 开发环境：如果没有配置密钥，使用临时生成的密钥（每次启动不同）
+  if (!isProduction && !secret) {
+    const crypto = require('crypto');
+    const tempSecret = crypto.randomBytes(32).toString('hex');
+    console.warn('⚠️  WARNING: JWT_SECRET not set. Using temporary key for development.');
+    console.warn('⚠️  Please set JWT_SECRET environment variable for production use.');
+    console.warn('⚠️  Generated temporary key will change on each server restart.');
+    return tempSecret;
+  }
+  
+  return secret;
 };
 
 // JWT认证中间件

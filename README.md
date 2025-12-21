@@ -47,6 +47,8 @@ chmod +x start.sh
 
 **默认账户**: `admin` / `admin123`
 
+⚠️ **安全警告**：生产环境部署后，请立即修改默认管理员密码！
+
 ---
 
 ## 快速开始
@@ -222,7 +224,10 @@ npm run dev
 ```env
 PORT=3000
 NODE_ENV=development
-JWT_SECRET=your-super-secret-jwt-key-change-in-production  # ⚠️ 生产环境必须修改
+# ⚠️ 生产环境必须设置强随机JWT密钥（至少32个字符）
+# 生成命令：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# 开发环境：如果未设置JWT_SECRET，系统会自动生成临时密钥（每次启动不同）
+JWT_SECRET=<your-strong-random-secret-at-least-32-characters>
 JWT_EXPIRES_IN=7d
 DB_PATH=./database/mms.db
 ```
