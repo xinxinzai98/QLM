@@ -3,10 +3,13 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
+# 安装必要的构建工具（sass-embedded需要）
+RUN apk add --no-cache python3 make g++
+
 # 复制前端package文件
 COPY frontend/package*.json ./
 
-# 安装前端依赖
+# 安装前端依赖（npm ci默认会安装devDependencies，因为构建需要sass-embedded）
 RUN npm config set registry https://registry.npmmirror.com
 RUN npm ci
 
