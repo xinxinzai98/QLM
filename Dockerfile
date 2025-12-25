@@ -3,8 +3,10 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# 安装必要的构建工具（sass-embedded需要）
-RUN apk add --no-cache python3 make g++
+# 配置阿里云镜像源并安装必要的构建工具（sass-embedded需要）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && apk add --no-cache python3 make g++ \
+    && rm -rf /var/cache/apk/*
 
 # 复制前端package文件
 COPY frontend/package*.json ./
